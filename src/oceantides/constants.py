@@ -43,6 +43,18 @@ I_MOON = math.radians(5.145)  # inclinação em relação à eclíptica
 T_MOON_SIDEREAL = 27.321661 * 86400.0  # s, mês sideral
 T_MOON_SYNODIC = 29.530589 * 86400.0  # s, mês sinódico (ciclo sizígia/quadratura)
 
+# Precessões da órbita lunar. São lentas demais para afetar um mês simulado,
+# mas governam efeitos de longo prazo que a análise harmônica precisa:
+#
+# * o **nó** regride em 18.613 anos. É o ciclo nodal: a inclinação da órbita
+#   em relação ao equador oscila entre 18.3 e 28.6 graus, modulando a amplitude
+#   das constituintes diurnas em ate +-18% (O1) e das semidiurnas em +-3.7% (M2).
+#   Com o nó fixo, a efeméride fica travada num ponto do ciclo -- e, na
+#   configuração inicial deste projeto, exatamente no máximo.
+# * o **perigeu** avança em 8.847 anos, e é o que separa N2 e L2 de M2.
+T_MOON_NODE = 18.612958 * 365.25 * 86400.0  # s, retrógrado
+T_MOON_PERIGEE = 8.847353 * 365.25 * 86400.0  # s, prógrado
+
 # --- Órbita da Terra em torno do Sol -----------------------------------------
 
 A_EARTH_ORBIT = 1.495978707e11  # m, unidade astronômica

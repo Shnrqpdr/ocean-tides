@@ -18,7 +18,10 @@ dependencies = [
 speed = ["numba>=0.59"]      # JIT do laço RK4 na grade global
 astro = ["astropy>=6.0"]     # efemérides JPL para validação cruzada
 maps  = ["cartopy>=0.22"]    # linhas de costa no mapa mundi
-data  = ["xarray>=2024.1", "netcdf4>=1.6"]
+data  = [
+    "xarray>=2024.1",
+    "netcdf4>=1.6",
+]
 dev   = ["pytest>=8.0"]
 
 [project.scripts]

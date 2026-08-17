@@ -44,6 +44,8 @@ from .constants import (
     GM_SUN,
     I_MOON,
     OBLIQUITY,
+    T_MOON_NODE,
+    T_MOON_PERIGEE,
     T_MOON_SIDEREAL,
     T_YEAR,
 )
@@ -116,6 +118,8 @@ class KeplerEphemeris:
     mean_anomaly0: float = 0.0
     obliquity: float = OBLIQUITY
     name: str = "corpo"
+    node_rate: float = 0.0  # rad/s; negativo = regressão do nó
+    perigee_rate: float = 0.0  # rad/s; positivo = avanço do perigeu
 
     _rotation: np.ndarray = field(init=False, repr=False)
 
@@ -130,6 +134,35 @@ class KeplerEphemeris:
             @ _rot_x(self.inclination)
             @ _rot_z(self.arg_periapsis)
         )
+        # partes fixa e variável, para quando o nó e o perigeu precessam
+        self._to_equatorial = _rot_x(self.obliquity)
+        self._in_plane = _rot_x(self.inclination) @ _rot_z(self.arg_periapsis)
+        self._precessing = bool(self.node_rate or self.perigee_rate)
+
+    def _orient(self, perifocal, t_arr):
+        """Aplica a orientação orbital, com nó e perigeu precessando em ``t``."""
+        if not self._precessing:
+            return perifocal @ self._rotation.T
+
+        # perigeu: rotação adicional no próprio plano orbital
+        if self.perigee_rate:
+            ang = self.perigee_rate * t_arr
+            c, s = np.cos(ang), np.sin(ang)
+            x, y = perifocal[..., 0], perifocal[..., 1]
+            perifocal = np.stack([c * x - s * y, s * x + c * y, perifocal[..., 2]], -1)
+
+        out = perifocal @ self._in_plane.T
+
+        # nó: rotação em torno de z, na eclíptica
+        if self.node_rate:
+            ang = self.raan + self.node_rate * t_arr
+            c, s = np.cos(ang), np.sin(ang)
+            x, y = out[..., 0], out[..., 1]
+            out = np.stack([c * x - s * y, s * x + c * y, out[..., 2]], axis=-1)
+        elif self.raan:
+            out = out @ _rot_z(self.raan).T
+
+        return out @ self._to_equatorial.T
 
     @property
     def mean_motion(self) -> float:
@@ -146,7 +179,7 @@ class KeplerEphemeris:
         y = self.semi_major * np.sqrt(1.0 - e * e) * np.sin(E)
         perifocal = np.stack([x, y, np.zeros_like(x)], axis=-1)
 
-        out = perifocal @ self._rotation.T
+        out = self._orient(perifocal, t_arr)
         return out[0] if np.ndim(t) == 0 else out
 
     def velocity(self, t) -> np.ndarray:
@@ -159,7 +192,7 @@ class KeplerEphemeris:
         vx = -self.semi_major * np.sin(E) * dE
         vy = self.semi_major * np.sqrt(1.0 - e * e) * np.cos(E) * dE
         perifocal = np.stack([vx, vy, np.zeros_like(vx)], axis=-1)
-        out = perifocal @ self._rotation.T
+        out = self._orient(perifocal, t_arr)
         return out[0] if np.ndim(t) == 0 else out
 
     def distance(self, t) -> np.ndarray:
@@ -222,8 +255,14 @@ class NBodyEphemeris:
 # ---------------------------------------------------------------------------
 
 
-def moon_ephemeris(mode="kepler", **kw) -> KeplerEphemeris:
-    """Lua. ``mode='circular'`` reproduz a hipótese simplificada do PDF."""
+def moon_ephemeris(mode="kepler", precess=True, **kw) -> KeplerEphemeris:
+    """Lua. ``mode='circular'`` reproduz a hipótese simplificada do PDF.
+
+    ``precess=True`` faz o nó regredir em 18.61 anos e o perigeu avançar em
+    8.85 anos. Sem isso a órbita fica congelada num ponto do ciclo nodal --
+    e, com ``raan=0``, exatamente no **máximo**, o que inflaciona as
+    constituintes diurnas em ~18% (O1) de forma permanente.
+    """
     circular = mode == "circular"
     return KeplerEphemeris(
         mu=GM_EARTH + GM_MOON,
@@ -231,6 +270,8 @@ def moon_ephemeris(mode="kepler", **kw) -> KeplerEphemeris:
         eccentricity=0.0 if circular else E_MOON,
         inclination=0.0 if circular else I_MOON,
         obliquity=0.0 if circular else OBLIQUITY,
+        node_rate=0.0 if circular or not precess else -2 * np.pi / T_MOON_NODE,
+        perigee_rate=0.0 if circular or not precess else 2 * np.pi / T_MOON_PERIGEE,
         name="Lua",
         **kw,
     )

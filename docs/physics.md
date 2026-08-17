@@ -217,6 +217,13 @@ esfera girante), não um oscilador de um grau de liberdade. Os parâmetros `T₀
 `Q` das estações são, portanto, parâmetros concentrados ajustados, e estão
 documentados como tais em `stations.py`.
 
+> **Continua em [`dynamics.md`](dynamics.md).** As LTE foram implementadas
+> (módulo `oceantides.lte`), com batimetria real, Coriolis, atrito de fundo e
+> auto-atração. Lá está o argumento quantitativo de por que a teoria de
+> equilíbrio tem que falhar — a onda de maré viaja a `√(gH) ≈ 198 m/s` contra os
+> ≈448 m/s com que o ponto sublunar varre o solo — e os pontos anfidrômicos que só a dinâmica
+> produz.
+
 ---
 
 ## 6. O que emerge sem ser programado

@@ -10,7 +10,13 @@ import numpy as np
 
 from .simulation import SimConfig, SimResult
 
-__all__ = ["save_result", "load_result", "to_xarray"]
+__all__ = [
+    "save_result",
+    "load_result",
+    "to_xarray",
+    "save_solution",
+    "load_solution",
+]
 
 
 def save_result(result: SimResult, path) -> Path:
@@ -49,6 +55,74 @@ def load_result(path) -> SimResult:
         station_names=tuple(data["station_names"].tolist()),
         config=SimConfig(**cfg),
         meta=json.loads(str(data["meta_json"])),
+    )
+
+
+def save_solution(solution, path) -> Path:
+    """Grava uma :class:`~oceantides.harmonic.HarmonicSolution` das LTE.
+
+    Só os coeficientes harmônicos vão para o disco. O campo instantâneo em
+    qualquer ``t`` é reconstruído deles em uma linha -- guardar a série
+    temporal completa seria centenas de vezes maior e não acrescentaria nada.
+    """
+    from dataclasses import asdict as _asdict
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    arrays = {
+        "cos_coeff": solution.cos_coeff,
+        "sin_coeff": solution.sin_coeff,
+        "mask": solution.mask,
+        "lat": solution.lat,
+        "lon": solution.lon,
+        "depth": solution.depth,
+    }
+    for name in ("u_cos", "u_sin", "v_cos", "v_sin"):
+        value = getattr(solution, name, None)
+        if value is not None:
+            arrays[name] = value
+
+    np.savez_compressed(
+        path,
+        names=np.array(solution.names, dtype=object),
+        n_samples=solution.n_samples,
+        dt=solution.dt,
+        config_json=json.dumps(
+            _asdict(solution.config) if solution.config is not None else {}
+        ),
+        **arrays,
+    )
+    return path
+
+
+def load_solution(path):
+    from .harmonic import HarmonicSolution
+    from .lte import LTEConfig
+
+    data = np.load(Path(path), allow_pickle=True)
+    cfg_raw = json.loads(str(data["config_json"]))
+    config = None
+    if cfg_raw:
+        cfg_raw["bodies"] = tuple(cfg_raw.get("bodies", ()))
+        config = LTEConfig(**cfg_raw)
+
+    optional = {
+        name: data[name] for name in ("u_cos", "u_sin", "v_cos", "v_sin")
+        if name in data.files
+    }
+    return HarmonicSolution(
+        names=list(data["names"].tolist()),
+        cos_coeff=data["cos_coeff"],
+        sin_coeff=data["sin_coeff"],
+        mask=data["mask"],
+        lat=data["lat"],
+        lon=data["lon"],
+        depth=data["depth"],
+        n_samples=int(data["n_samples"]),
+        dt=float(data["dt"]),
+        config=config,
+        **optional,
     )
 
 

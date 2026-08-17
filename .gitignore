@@ -6,7 +6,13 @@ __pycache__/
 
 # artefatos gerados
 out.npz
-*.npz
+lte*.npz
 *.mp4
 *.gif
 media/
+
+# caches de dados: o ETOPO é grande demais e se rebaixa sozinho na 1a execução;
+# os caches da NOAA são pequenos e ficam versionados para os testes rodarem
+# sem depender de rede.
+data/etopo_5min.npz
+data/lte_*.npz

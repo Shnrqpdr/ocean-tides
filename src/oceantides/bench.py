@@ -44,7 +44,10 @@ def _timed(fn):
 
 def run_bench(dts=(600.0, 1800.0, 3600.0), years=10.0, methods=None):
     """Integra a órbita lunar por ``years`` com cada método e cada ``dt``."""
-    exact = moon_ephemeris("kepler")
+    # SEM precessão: os drivers integram o problema de DOIS CORPOS puro, cuja
+    # solução exata é a elipse fixa. Comparar contra a órbita precessante
+    # mediria a física ausente do integrador, não o erro numérico dele.
+    exact = moon_ephemeris("kepler", precess=False)
     methods = list(methods or ORBIT_DRIVERS)
     rows = []
 
@@ -84,7 +87,7 @@ def run_bench(dts=(600.0, 1800.0, 3600.0), years=10.0, methods=None):
 
 def convergence_study(dts=(14400.0, 7200.0, 3600.0, 1800.0), fraction=0.25):
     """Ordem de convergência observada de cada driver."""
-    exact = moon_ephemeris("kepler")
+    exact = moon_ephemeris("kepler", precess=False)  # ver nota em run_bench
     duration = fraction * T_MOON_SIDEREAL
     out = {}
     for name, driver in ORBIT_DRIVERS.items():

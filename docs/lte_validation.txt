@@ -1,0 +1,21 @@
+Amplitude de M2: modelo vs. marégrafo (NOAA CO-OPS)
+
+estacao                   tipo         obs[m]  modelo[m]   erro[m]  erro[%]
+---------------------------------------------------------------------------
+Honolulu, HI              ilha          0.171      0.149    -0.022    -13.0
+Sand Island, Midway       ilha          0.119      0.111    -0.008     -6.5
+Pago Pago, Samoa          ilha          0.377      0.506     0.129     34.2
+Apra Harbor, Guam         ilha          0.220      0.216    -0.004     -1.6
+Nawiliwili, Kauai         ilha          0.149      0.161     0.012      8.3
+Hilo, Hawaii              ilha          0.220      0.219    -0.001     -0.4
+Kwajalein                 ilha          0.467      0.422    -0.045     -9.5
+Wake Island               ilha          0.277      0.225    -0.052    -18.7
+San Francisco, CA         costeira      0.576      0.392    -0.184    -32.0
+Boston, MA                costeira      1.371      0.966    -0.405    -29.5
+Key West, FL              costeira      0.179      0.162    -0.017     -9.3
+Anchorage, AK             costeira      3.505      0.878    -2.627    -75.0
+The Battery, NY           costeira      0.671      0.658    -0.013     -1.9
+
+      ilha: RMS 5.2 cm sobre 8 estacoes  (obs media 25.0 cm)
+
+  costeira: RMS 119.2 cm sobre 5 estacoes  (obs media 126.0 cm)

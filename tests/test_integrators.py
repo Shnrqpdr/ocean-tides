@@ -19,7 +19,9 @@ YEAR = 365.25 * 86400.0
 
 @pytest.fixture(scope="module")
 def moon():
-    return moon_ephemeris("kepler")
+    # sem precessão: é a solução exata do problema de dois corpos que os
+    # drivers integram, e portanto a única referência justa para medir erro
+    return moon_ephemeris("kepler", precess=False)
 
 
 class TestKeplerEquation:

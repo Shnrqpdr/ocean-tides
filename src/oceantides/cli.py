@@ -73,8 +73,115 @@ def cmd_bench(args) -> int:
     return 0
 
 
+def cmd_lte(args) -> int:
+    """Resolve as Equações de Maré de Laplace no oceano global."""
+    from .io import save_solution
+    from .lte import LaplaceTidalModel, LTEConfig
+
+    cfg = LTEConfig(
+        resolution=args.resolution,
+        days=args.days,
+        spin_up_days=args.spin_up,
+        forcing=args.forcing,
+        constituent=args.constituent,
+        internal_drag=args.internal_drag,
+        drag=args.drag,
+        sal_beta=args.sal,
+    )
+    model = LaplaceTidalModel(cfg)
+    print(model.summary())
+    print()
+
+    names = [c.strip() for c in args.constituents.split(",")] if args.constituents \
+        else [args.constituent]
+
+    def progress(k, total, _state):
+        print(f"  {100 * k / total:5.1f}%", end="\r", flush=True)
+
+    solution = model.run(constituents=names, progress=progress)
+    path = save_solution(solution, args.out)
+    print(f"\nsolução gravada em {path}\n")
+
+    for name in names:
+        stats = solution.global_stats(name)
+        amph = solution.find_amphidromes(name, 0.03)
+        print(
+            f"{name}: média {stats['amplitude_media']:.3f} m  ·  "
+            f"máx {stats['amplitude_maxima']:.2f} m  ·  "
+            f"oceano profundo {stats['amplitude_media_oceano_profundo']:.3f} m  ·  "
+            f"{len(amph)} anfidromos"
+        )
+    return 0
+
+
+def cmd_chart(args) -> int:
+    from .io import load_solution
+    from .viz.cotidal import plot_cotidal_chart
+
+    solution = load_solution(args.input)
+    fig, _, amph = plot_cotidal_chart(solution, args.constituent)
+
+    stats = solution.amphidrome_rotation_stats(args.constituent, amplitude_threshold=0.03)
+    print(f"{len(amph)} pontos anfidrômicos de {args.constituent}")
+    for hemisphere, s in stats.items():
+        if s["total"]:
+            print(
+                f"  hemisfério {hemisphere}: {s['total']:2d} pontos, "
+                f"{100 * s['fracao_esperada']:.0f}% no sentido que Coriolis prevê"
+            )
+
+    _show_or_save(fig, args.save, args.dpi)
+    return 0
+
+
+def cmd_validate(args) -> int:
+    from .io import load_solution
+    from .validation import ALL_STATIONS, compare, format_comparison
+    from .viz.cotidal import plot_validation
+
+    solution = load_solution(args.input)
+    rows = compare(solution, args.constituent, ALL_STATIONS)
+    print(format_comparison(rows, args.constituent))
+
+    if args.save or args.plot:
+        fig, _ = plot_validation(rows, args.constituent)
+        _show_or_save(fig, args.save, args.dpi)
+    return 0
+
+
+def _show_or_save(fig, path, dpi=140):
+    import matplotlib.pyplot as plt
+
+    if path:
+        fig.savefig(path, dpi=dpi, facecolor=fig.get_facecolor())
+        print(f"figura salva em {path}")
+    else:
+        plt.show()
+
+
 def cmd_animate(args) -> int:
-    from .io import load_result
+    from .io import load_result, load_solution
+
+    # os modos de onda operam sobre a solução harmônica das LTE;
+    # os demais, sobre a série temporal das estações
+    if args.mode in ("wave", "currents"):
+        solution = load_solution(args.input)
+        from .viz import tide_wave
+
+        animate = tide_wave.animate_currents if args.mode == "currents" \
+            else tide_wave.animate
+        anim, fig = animate(
+            solution, constituent=args.constituent,
+            frames=args.frames or 120, interval=args.interval,
+        )
+        if args.save:
+            _save_animation(anim, args.save, args.fps, args.dpi)
+            print(f"animação salva em {args.save}")
+        else:
+            import matplotlib.pyplot as plt
+
+            plt.show()
+        return 0
 
     result = load_result(args.input)
 
@@ -163,9 +270,49 @@ def build_parser() -> argparse.ArgumentParser:
     p_bench.add_argument("--dts", type=float, nargs="+", default=[600.0, 1800.0, 3600.0])
     p_bench.set_defaults(func=cmd_bench)
 
+    p_lte = sub.add_parser(
+        "lte", help="resolve as Equações de Maré de Laplace no oceano global"
+    )
+    p_lte.add_argument("--resolution", type=float, default=1.0, help="graus")
+    p_lte.add_argument("--days", type=float, default=12.5)
+    p_lte.add_argument("--spin-up", type=float, default=10.0)
+    p_lte.add_argument("--forcing", default="constituent",
+                       choices=["constituent", "astronomical"])
+    p_lte.add_argument("--constituent", default="M2")
+    p_lte.add_argument("--constituents", default=None,
+                       help="lista para extrair (só faz sentido com --forcing astronomical)")
+    p_lte.add_argument("--internal-drag", type=float, default=1e-5,
+                       help="arrasto linear de maré interna [1/s]")
+    p_lte.add_argument("--drag", type=float, default=0.0025,
+                       help="coeficiente de atrito de fundo quadrático")
+    p_lte.add_argument("--sal", type=float, default=0.09,
+                       help="beta da aproximação escalar de auto-atração e carga")
+    p_lte.add_argument("--out", default="lte.npz")
+    p_lte.set_defaults(func=cmd_lte)
+
+    p_chart = sub.add_parser("chart", help="carta cotidal a partir de uma solução LTE")
+    p_chart.add_argument("--input", default="lte.npz")
+    p_chart.add_argument("--constituent", default="M2")
+    p_chart.add_argument("--save", default=None)
+    p_chart.add_argument("--dpi", type=int, default=140)
+    p_chart.set_defaults(func=cmd_chart)
+
+    p_val = sub.add_parser("validate", help="compara com marégrafos da NOAA")
+    p_val.add_argument("--input", default="lte.npz")
+    p_val.add_argument("--constituent", default="M2")
+    p_val.add_argument("--plot", action="store_true")
+    p_val.add_argument("--save", default=None)
+    p_val.add_argument("--dpi", type=int, default=140)
+    p_val.set_defaults(func=cmd_validate)
+
     p_anim = sub.add_parser("animate", help="anima um resultado")
     p_anim.add_argument("--input", default="out.npz")
-    p_anim.add_argument("--mode", default="polar", choices=["polar", "map", "globe"])
+    p_anim.add_argument(
+        "--mode", default="polar",
+        choices=["polar", "map", "globe", "wave", "currents"],
+        help="'wave' e 'currents' operam sobre uma solução LTE (oceantides lte)",
+    )
+    p_anim.add_argument("--constituent", default="M2")
     p_anim.add_argument(
         "--exaggeration", type=float, default=None,
         help="fator de exagero do bojo; padrão escolhido automaticamente",
