@@ -1,0 +1,37 @@
+Orbita lunar integrada por 10 anos, comparada ao Kepler analitico
+
+metodo            dt[s]     |dE/E|  erro pos[m]   erro h[%]  aval/passo  tempo[s]  secular?
+-------------------------------------------------------------------------------------------
+RK4                 600   3.65e-13     1.37e-01    1.26e-09           4      9.63       sim
+Velocity-Verlet     600   1.15e-07     3.22e+05    4.87e-03           1      3.35       nao
+Yoshida-4           600   3.86e-13     2.00e+00    1.22e-08           3      7.73       nao
+RK4                1800   6.64e-11     2.05e+01    4.20e-07           4      3.19       sim
+Velocity-Verlet    1800   1.03e-06     2.90e+06    4.38e-02           1      1.08       nao
+Yoshida-4          1800   3.42e-11     1.64e+02    8.87e-07           3      2.53       nao
+RK4                3600   2.10e-09     5.86e+02    1.77e-05           4      1.62       sim
+Velocity-Verlet    3600   4.15e-06     1.16e+07    1.75e-01           1      0.55       nao
+Yoshida-4          3600   5.49e-10     2.62e+03    1.42e-05           3      1.27       nao
+
+Ordem de convergencia observada:
+  RK4              declarada 4  observada 4.023
+  Velocity-Verlet  declarada 2  observada 2.000
+  Yoshida-4        declarada 4  observada 3.998
+
+Leitura:
+  * Simpletico (Verlet, Yoshida-4): erro de energia LIMITADO -- oscila em
+    torno de zero. RK4: erro SECULAR -- cresce junto com o tempo. Medido em
+    10 anos, o erro do RK4 fica ~9x o de 1 ano; o dos simpleticos, ~1x.
+  * Mas simpletico NAO implica mais preciso. Verlet e simpletico e mesmo
+    assim fica ordens de grandeza pior que o RK4, porque e de 2a ordem: a
+    ordem do metodo pesa mais que a simpleticidade nestas escalas de tempo.
+  * Yoshida-4 tem as duas coisas -- 4a ordem E erro limitado -- por 3
+    avaliacoes de forca por passo, contra 4 do RK4. E a melhor escolha
+    entre os integradores propriamente ditos.
+  * Kepler analitico vence todos: precisao de maquina, deriva zero, custo
+    O(1) por instante. E o padrao de producao deste projeto.
+
+  * IMPACTO PRATICO: o pior erro de mare da tabela e 0.175%, ou seja
+    0.95 mm numa mare de 0.54 m. Nenhum destes metodos compromete
+    o resultado fisico. A sugestao original de RK4 funcionaria perfeitamente;
+    o Kepler analitico foi adotado por ser mais simples e exato, nao por
+    necessidade numerica.

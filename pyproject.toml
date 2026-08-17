@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "oceantides"
+version = "0.1.0"
+description = "Simulador de marés oceânicas a partir do formalismo newtoniano de Thornton & Marion §5.5"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+speed = ["numba>=0.59"]      # JIT do laço RK4 na grade global
+astro = ["astropy>=6.0"]     # efemérides JPL para validação cruzada
+maps  = ["cartopy>=0.22"]    # linhas de costa no mapa mundi
+data  = ["xarray>=2024.1", "netcdf4>=1.6"]
+dev   = ["pytest>=8.0"]
+
+[project.scripts]
+oceantides = "oceantides.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/oceantides"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

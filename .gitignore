@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# artefatos gerados
+out.npz
+*.npz
+*.mp4
+*.gif
+media/
