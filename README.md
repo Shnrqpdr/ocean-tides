@@ -116,6 +116,8 @@ docs/
   physics.md      derivação do PDF ao código; erratum do livro
   integrators.md  a resposta medida sobre RK4 vs. simpléticos vs. Kepler
   dynamics.md     por que o equilíbrio falha e o que as LTE acrescentam
+  latex/          monografia: dinâmica clássica → força de maré → LTE →
+                  formulação das melhorias; apêndice com a implementação
 scripts/          render_demos · render_dynamics · tune_friction
 ```
 

@@ -3,8 +3,10 @@
 Duas famílias, porque o projeto tem dois subsistemas com exigências distintas:
 
 **Genérico** ``y' = f(t, y)`` -- :func:`rk4_step`. É o que a resposta dinâmica
-do oceano precisa: o amortecimento ``2 gamma h'`` depende da velocidade, e
-integradores simpléticos perdem ordem nesse caso.
+do oceano precisa: o amortecimento ``2 gamma h'`` depende da velocidade. O
+sistema deixa de ser hamiltoniano, então não há estrutura simplética a
+preservar -- os métodos simpléticos perdem a vantagem, e deixam de ser
+explícitos porque a força passa a depender da velocidade que estão avançando.
 
 **Separável** ``x' = v``, ``v' = a(t, x)`` -- :func:`integrate_velocity_verlet`
 e :func:`integrate_yoshida4`, ambos simpléticos e reversíveis no tempo. É o que

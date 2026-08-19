@@ -16,3 +16,13 @@ media/
 # sem depender de rede.
 data/etopo_5min.npz
 data/lte_*.npz
+
+# auxiliares do LaTeX (o .tex e o .pdf ficam versionados)
+docs/latex/*.aux
+docs/latex/*.log
+docs/latex/*.out
+docs/latex/*.toc
+docs/latex/*.lof
+docs/latex/*.lot
+docs/latex/*.fls
+docs/latex/*.fdb_latexmk

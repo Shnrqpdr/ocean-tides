@@ -1,0 +1,3142 @@
+% =====================================================================
+%  Marés Oceânicas: da dinâmica newtoniana às Equações de Maré de Laplace
+%  Documento de estudo
+%  Compilar com:  latexmk -pdf mares-oceanicas.tex
+% =====================================================================
+\documentclass[11pt,a4paper,oneside]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{newpxtext}
+\usepackage{newpxmath}
+\usepackage{inconsolata}
+\usepackage{microtype}
+
+\usepackage[a4paper,margin=2.6cm,bottom=3.0cm,headheight=14pt]{geometry}
+\let\Bbbk\relax
+\let\openbox\relax
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{empheq}
+\usepackage{bm}
+\usepackage{graphicx}
+\usepackage{booktabs,array,multirow}
+\usepackage{siunitx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage[breakable,skins]{tcolorbox}
+\usepackage[hidelinks,colorlinks=true,linkcolor=azulforte,citecolor=azulforte,
+            urlcolor=azulforte,
+            pdftitle={Mares Oceanicas: da dinamica newtoniana as Equacoes de Mare de Laplace},
+            pdfsubject={Marés oceânicas: formulação e modelagem numérica},
+            pdfkeywords={mares, Laplace, dinamica classica, analise harmonica,
+                         pontos anfidromicos, integradores simpleticos}]{hyperref}
+
+\usetikzlibrary{arrows.meta,decorations.pathmorphing,patterns,calc,positioning}
+\pgfplotsset{compat=1.18}
+\graphicspath{{../../media/}{media/}}
+
+% --- português sem babel (o texlive local não traz babel-portuguese) ---
+\renewcommand{\chaptername}{Capítulo}
+\renewcommand{\partname}{Parte}
+\renewcommand{\contentsname}{Sumário}
+\renewcommand{\appendixname}{Apêndice}
+\renewcommand{\bibname}{Referências}
+\renewcommand{\figurename}{Figura}
+\renewcommand{\tablename}{Tabela}
+\renewcommand{\abstractname}{Resumo}
+\renewcommand{\listfigurename}{Lista de figuras}
+\renewcommand{\listtablename}{Lista de tabelas}
+
+% padrões de hifenização são os do inglês; afrouxa o ajuste e corrige à mão
+% as palavras técnicas que mais se repetem
+\tolerance=1400
+\emergencystretch=2.4em
+\hyphenation{an-fi-dro-mo an-fi-dro-mos an-fi-dro-mi-co an-fi-dro-mi-cos
+  equi-li-brio hi-dro-di-na-mi-ca hi-dro-di-na-mi-co cons-ti-tuin-te
+  cons-ti-tuin-tes ba-ti-me-tria dis-si-pa-cao ba-ro-tro-pi-co
+  ba-ro-cli-ni-co sim-ple-ti-co sim-ple-ti-cos har-mo-ni-ca har-mo-ni-cas
+  ma-re-gra-fo ma-re-gra-fos os-ci-la-dor res-so-nan-cia gra-vi-ta-cio-nal
+  per-tur-ba-dor La-pla-ce New-ton amor-te-ci-men-to pro-fun-di-da-de
+  se-mi-diur-na se-mi-diur-nas nu-me-ri-ca nu-me-ri-co geo-po-ten-cial}
+
+% --- cores ---
+\definecolor{azulforte}{HTML}{184F95}
+\definecolor{azulclaro}{HTML}{EAF3FD}
+\definecolor{tinta}{HTML}{1A1A1A}
+\definecolor{cinza}{HTML}{5A5A5A}
+\definecolor{laranja}{HTML}{EB6834}
+\definecolor{verde}{HTML}{1BAF7A}
+\definecolor{papel}{HTML}{FBFAF7}
+
+% --- cabeçalhos ---
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\small\scshape\nouppercase{\leftmark}}
+\fancyhead[R]{\small\thepage}
+\fancypagestyle{plain}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}%
+  \fancyfoot[C]{\small\thepage}}
+
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\color{azulforte}}
+  {\normalsize\scshape\color{cinza}\chaptertitlename\ \thechapter}{8pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-10pt}{28pt}
+\titleformat{\section}{\normalfont\Large\bfseries\color{azulforte}}{\thesection}{0.7em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{0.7em}{}
+
+% --- ambientes ---
+\theoremstyle{definition}
+\newtheorem{definicao}{Definição}[chapter]
+\newtheorem{exemplo}[definicao]{Exemplo}
+\theoremstyle{plain}
+\newtheorem{proposicao}[definicao]{Proposição}
+\theoremstyle{remark}
+\newtheorem{observacao}[definicao]{Observação}
+
+\newtcolorbox{caixa}[1][]{
+  breakable, enhanced, colback=azulclaro, colframe=azulforte,
+  boxrule=0.4pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  fonttitle=\bfseries\small, title={#1}, sharp corners=downhill,
+  attach boxed title to top left={xshift=8pt,yshift=-8pt},
+  boxed title style={colback=azulforte,sharp corners}}
+
+\newtcolorbox{alerta}[1][]{
+  breakable, enhanced, colback=papel, colframe=laranja,
+  boxrule=0.9pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  fonttitle=\bfseries\small, title={#1}, sharp corners,
+  attach boxed title to top left={xshift=8pt,yshift=-8pt},
+  boxed title style={colback=laranja,sharp corners}}
+
+% --- código ---
+\lstdefinestyle{py}{
+  language=Python, basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{azulforte}\bfseries, commentstyle=\color{cinza},
+  stringstyle=\color{verde}, numbers=left, numberstyle=\tiny\color{cinza},
+  numbersep=8pt, frame=leftline, framerule=1.2pt, rulecolor=\color{azulclaro},
+  backgroundcolor=\color{papel}, showstringspaces=false, breaklines=true,
+  columns=fullflexible, xleftmargin=14pt, extendedchars=true, upquote=true,
+  literate=%
+    {á}{{\'a}}1 {à}{{\`a}}1 {ã}{{\~a}}1 {â}{{\^a}}1
+    {é}{{\'e}}1 {ê}{{\^e}}1 {í}{{\'i}}1 {ó}{{\'o}}1
+    {ô}{{\^o}}1 {õ}{{\~o}}1 {ú}{{\'u}}1 {ç}{{\c c}}1
+    {Á}{{\'A}}1 {Ã}{{\~A}}1 {É}{{\'E}}1 {Ê}{{\^E}}1
+    {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ô}{{\^O}}1 {Õ}{{\~O}}1 {Ú}{{\'U}}1 {Ç}{{\c C}}1
+}
+\lstset{style=py}
+
+% --- macros ---
+\newcommand{\vect}[1]{\bm{#1}}
+\newcommand{\uvec}[1]{\hat{\bm{#1}}}
+\newcommand{\pd}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\ddt}[1]{\frac{\mathrm{d} #1}{\mathrm{d} t}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\ordem}[1]{\mathcal{O}\!\left(#1\right)}
+\DeclareMathOperator{\atantwo}{atan2}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareSIUnit{\ano}{ano}
+\DeclareSIUnit{\anos}{anos}
+\sisetup{output-decimal-marker={,},per-mode=symbol,group-separator={\,}}
+
+\setlist[itemize]{itemsep=2pt,topsep=4pt}
+\setlist[enumerate]{itemsep=2pt,topsep=4pt}
+
+% =====================================================================
+\begin{document}
+
+\begin{titlepage}
+\centering
+\vspace*{2.4cm}
+{\scshape\large Documento de estudo\par}
+\vspace{0.4cm}
+{\color{azulforte}\rule{\textwidth}{1.2pt}}
+\vspace{0.9cm}
+
+{\Huge\bfseries Marés Oceânicas\par}
+\vspace{0.6cm}
+{\LARGE Da dinâmica newtoniana às\\[2pt] Equações de Maré de Laplace\par}
+\vspace{0.9cm}
+{\color{azulforte}\rule{\textwidth}{1.2pt}}
+\vspace{1.4cm}
+
+{\large Fundamentos de mecânica clássica, formulação do problema de maré\\
+e a matemática das melhorias implementadas na simulação\par}
+
+\vfill
+{\normalsize Texto de referência para a formulação newtoniana:\\
+J.~B. Marion \& S.~T. Thornton, \emph{Classical Dynamics of Particles and\\
+Systems}, \S5.5 ``Ocean Tides''\par}
+\vspace{1.4cm}
+{\large Agosto de 2026\par}
+\end{titlepage}
+
+\tableofcontents
+\cleardoublepage
+
+\chapter*{Apresentação}
+\addcontentsline{toc}{chapter}{Apresentação}
+\markboth{APRESENTAÇÃO}{}
+
+O objeto deste texto é a maré oceânica, tratada do princípio ao fim: da
+formulação newtoniana da força de maré num referencial acelerado até um modelo
+barotrópico global das Equações de Maré de Laplace, confrontado com marégrafos.
+O leitor pressuposto é o de pós-graduação em física, com mecânica clássica
+madura e sem familiaridade prévia com oceanografia dinâmica.
+
+A escolha de escopo é deliberada. A teoria de equilíbrio de Newton, que é o que
+os livros de mecânica clássica apresentam, está \emph{qualitativamente} errada —
+não apenas imprecisa —, e mostrar por quê exige atravessar hidrodinâmica de
+fluido girante, dissipação turbulenta, gravitação autoconsistente e análise
+harmônica. Esse percurso é longo o bastante para que o encadeamento se perca se
+não for explicitado, e por isso o texto o expõe em quatro partes com uma
+progressão única.
+
+\paragraph{Método.} Três compromissos organizam a exposição.
+
+\begin{enumerate}
+\item \textbf{Toda equação é derivada, e toda derivação parte da anterior.}
+  Resultados importados da literatura aparecem com a referência ao lado e são,
+  sempre que possível, verificados por consistência interna — a força expandida
+  contra a exata, o potencial contra o campo de forças que dele deriva, a
+  resposta integrada contra a admitância analítica.
+\item \textbf{Todo número citado é reproduzível.} As tabelas de resultados são
+  saídas de execução do modelo descrito, não estimativas de ordem de grandeza,
+  e as constantes usadas estão declaradas.
+\item \textbf{Os limites de cada modelo são parte do conteúdo.} Há um capítulo
+  inteiro sobre onde a teoria de equilíbrio falha, e seções sobre onde o modelo
+  dinâmico erra e por quê. Um modelo cujo domínio de validade não foi
+  delimitado não foi compreendido.
+\end{enumerate}
+
+\paragraph{Organização.} A Parte~\ref{parte:fundamentos} recolhe os fundamentos
+de dinâmica clássica de que tudo o mais depende: referenciais não inerciais,
+expansão multipolar do potencial gravitacional, oscilador forçado amortecido e o
+mínimo necessário de dinâmica de fluidos geofísicos. Quem domina esse material
+pode lê-la em diagonal, mas as convenções de sinal ali fixadas são usadas até o
+fim. A Parte~\ref{parte:mare} aplica essa dinâmica ao problema de maré e chega à
+teoria de equilíbrio, com os resultados clássicos reproduzidos numericamente. A
+Parte~\ref{parte:melhorias} é o núcleo do texto: o fundamento teórico e a
+formulação matemática do modelo dinâmico — Equações de Maré de Laplace,
+auto-atração e carga, dissipação, pontos anfidrômicos, análise harmônica e
+esquemas numéricos. A Parte~\ref{parte:sintese} fecha com validação contra
+observação, orçamento energético e a distância que separa este modelo dos
+operacionais.
+
+\paragraph{Percursos de leitura.} Para o argumento essencial em cinco leituras:
+\S\ref{sec:multipolo}, Capítulo~\ref{cap:forcamare}, \S\ref{sec:numeros},
+Capítulo~\ref{cap:falha} e \S\ref{sec:topologia}. Quem se interessa
+especificamente por análise de séries de marégrafo encontra no
+Capítulo~\ref{cap:harmonica} um tratamento autocontido, que não depende da
+hidrodinâmica. O Apêndice~\ref{ap:python} descreve, de forma sucinta, a
+implementação numérica que produziu os resultados apresentados.
+
+
+
+
+% =====================================================================
+\part{Fundamentos de dinâmica clássica}
+\label{parte:fundamentos}
+% =====================================================================
+
+\chapter{Referenciais não inerciais}
+\label{cap:referenciais}
+
+A maré é, antes de mais nada, um efeito de referencial. Um observador em queda
+livre no campo de outro corpo não sente a gravidade desse corpo — sente apenas
+a \emph{variação} dela através da sua própria extensão. É por isso que a maré
+existe, e é por isso que a primeira coisa a fixar é a mecânica do referencial
+não inercial.
+
+\section{O operador de derivada temporal em referencial girante}
+
+Sejam $S$ um referencial inercial e $S'$ um referencial cuja origem se move e
+cujos eixos giram com velocidade angular $\vect{\omega}(t)$ em relação a $S$.
+Para qualquer vetor $\vect{A}$,
+\begin{equation}
+\left(\ddt{\vect{A}}\right)_{S} \;=\; \left(\ddt{\vect{A}}\right)_{S'} \;+\;
+\vect{\omega}\times\vect{A}.
+\label{eq:operador}
+\end{equation}
+A demonstração é direta: escreva $\vect{A}=\sum_i A_i\,\uvec{e}_i'$ na base de
+$S'$; a derivada em $S$ atinge tanto as componentes $A_i$ (o que dá o primeiro
+termo) quanto os versores $\uvec{e}_i'$, cuja taxa de variação, para uma base
+rígida em rotação, é $\dot{\uvec{e}}_i'=\vect{\omega}\times\uvec{e}_i'$.
+
+A Eq.~\eqref{eq:operador} é um \emph{operador}: vale para qualquer vetor, e em
+particular pode ser aplicada duas vezes.
+
+\section{A equação de movimento no referencial acelerado e girante}
+
+Seja $\vect{R}_0(t)$ a posição da origem de $S'$ vista de $S$, e $\vect{r}$ a
+posição de uma partícula medida em $S'$. Então
+$\vect{r}_{S}=\vect{R}_0+\vect{r}$, e aplicando \eqref{eq:operador} duas vezes
+obtém-se a forma canônica
+\begin{equation}
+m\,\ddot{\vect{r}}\Big|_{S'} \;=\;
+\underbrace{\vect{F}}_{\text{forças reais}}
+\;-\;\underbrace{m\ddot{\vect{R}}_0}_{\text{arrasto de translação}}
+\;-\;\underbrace{m\,\dot{\vect{\omega}}\times\vect{r}}_{\text{Euler}}
+\;-\;\underbrace{2m\,\vect{\omega}\times\dot{\vect{r}}}_{\text{Coriolis}}
+\;-\;\underbrace{m\,\vect{\omega}\times(\vect{\omega}\times\vect{r})}_{\text{centrífuga}}.
+\label{eq:naoinercial}
+\end{equation}
+
+Os cinco termos aparecem todos neste documento, e é útil já dizer onde:
+
+\begin{itemize}
+\item $\vect{F}$ contém a gravidade da própria Terra e a atração do corpo
+  perturbador (Lua, Sol);
+\item $-m\ddot{\vect{R}}_0$ é o termo que \textbf{gera a maré}
+  (Capítulo~\ref{cap:forcamare}): a origem escolhida é o centro da Terra, que
+  está em queda livre no campo da Lua;
+\item o termo de Euler é desprezível aqui ($\dot{\vect\Omega}_{\text{Terra}}\sim
+  6\times10^{-22}\,\si{\radian\per\second\squared}$, associado ao próprio atrito de
+  maré — ver \S\ref{sec:torque});
+\item Coriolis é o termo que produz os \textbf{pontos anfidrômicos}
+  (Capítulo~\ref{cap:anfidromos}); no oceano ele \emph{não} é uma correção
+  pequena, como se mostrará em \S\ref{sec:escala};
+\item a centrífuga é absorvida na definição de \emph{geoide}: o que se chama
+  ``vertical'' e o que se mede como $g=\SI{9.80665}{\meter\per\second\squared}$
+  já incluem $-\vect{\Omega}\times(\vect{\Omega}\times\vect{r})$. Ela achata a
+  Terra em $1/298$ e é estática — não gera maré.
+\end{itemize}
+
+\begin{caixa}[Por que a centrífuga não é maré e o arrasto de translação é]
+Ambas são forças inerciais, mas com estruturas espaciais distintas. A
+centrífuga associada à \emph{rotação da Terra} é estacionária no referencial
+que gira com o planeta: deforma o geoide uma vez, permanentemente. Já
+$-m\ddot{\vect{R}}_0$ é uniforme no espaço mas o campo real do perturbador não
+é, e a maré é exatamente a diferença entre os dois. A força de maré é, em uma
+frase, \emph{o resíduo de um campo não uniforme depois de subtraída a queda
+livre do centro}.
+\end{caixa}
+
+\section{O referencial geocêntrico}
+\label{sec:geocentrico}
+
+Adota-se, do Capítulo~\ref{cap:forcamare} em diante, o referencial com origem
+no centro de massa da Terra. Ele é não inercial por duas razões independentes:
+
+\begin{enumerate}
+\item \textbf{translada aceleradamente}, porque a Terra orbita o baricentro
+  Terra--Lua (a \SI{4671}{\kilo\meter} do centro da Terra, ou seja, dentro do
+  planeta) e o baricentro Terra--Sol;
+\item \textbf{gira}, com
+  $\Omega_\oplus=2\pi/T_{\text{sid}}=\SI{7.292115e-5}{\radian\per\second}$,
+  $T_{\text{sid}}=\SI{86164.0905}{\second}$.
+\end{enumerate}
+
+O ponto conceitual mais importante do documento talvez seja este: os dois
+efeitos entram em \emph{lugares diferentes} da física da maré. A translação
+acelerada gera a \textbf{força}; a rotação governa a \textbf{resposta}. A
+teoria de equilíbrio (Parte~\ref{parte:mare}) usa apenas a primeira; as
+Equações de Maré de Laplace (Parte~\ref{parte:melhorias}) usam as duas, e é daí
+que vem a diferença qualitativa entre os dois modelos.
+
+\begin{observacao}
+A rotação da Terra é praticamente uniforme na escala de tempo de interesse, de
+modo que $\dot{\vect\Omega}\approx 0$ e o termo de Euler some da
+Eq.~\eqref{eq:naoinercial}. Mas ele não é rigorosamente nulo, e a sua
+não-nulidade \emph{é} um efeito de maré: o atrito das marés frena a rotação
+terrestre em $\sim\SI{2.3}{\milli\second} $ por século
+(\S\ref{sec:torque}).
+\end{observacao}
+
+% =====================================================================
+\chapter{Gravitação, dois corpos e a expansão multipolar}
+\label{cap:gravitacao}
+
+\section{O problema de dois corpos}
+
+Para duas massas $m_1,m_2$ interagindo apenas gravitacionalmente, a separação
+$\vect{d}=\vect{r}_2-\vect{r}_1$ obedece
+\begin{equation}
+\mu\,\ddot{\vect{d}} = -\frac{G m_1 m_2}{d^{3}}\vect{d},
+\qquad \mu=\frac{m_1m_2}{m_1+m_2},
+\end{equation}
+isto é, o problema de dois corpos reduz-se a \emph{um} corpo de massa reduzida
+$\mu$ num campo central $-GM_{\text{tot}}/d$. A conservação do momento angular
+$\vect{L}=\mu\,\vect{d}\times\dot{\vect{d}}$ confina o movimento a um plano, e
+a conservação da energia leva à órbita cônica
+\begin{equation}
+d(\theta)=\frac{a(1-e^{2})}{1+e\cos\theta}.
+\end{equation}
+
+Para a Lua, $a=\SI{3.844e8}{\meter}$, $e=0.0549$, inclinação
+$i=\ang{5.145}$ em relação à eclíptica; para a órbita da Terra em torno do Sol,
+$a=\SI{1.4959787e11}{\meter}$, $e=0.016708$, e a obliquidade da eclíptica é
+$\varepsilon=\ang{23.4393}$.
+
+\begin{caixa}[Por que a excentricidade importa muito mais do que parece]
+A maré escala com $D^{-3}$ (Capítulo~\ref{cap:potencial}). Logo
+\begin{equation}
+\frac{\delta h}{h} = -3\,\frac{\delta D}{D},
+\label{eq:amplificacao3x}
+\end{equation}
+e qualquer erro de distância é \textbf{amplificado três vezes} na amplitude da
+maré. Com $D$ variando de \SI{363625}{\kilo\meter} (perigeu) a
+\SI{405870}{\kilo\meter} (apogeu), a modulação da amplitude por esse efeito
+sozinho é $(405870/363625)^3=\num{1.39}$: as \emph{marés perigeanas}. A
+Eq.~\eqref{eq:amplificacao3x} volta a aparecer no Capítulo~\ref{cap:numerica}
+como o critério para julgar integradores orbitais.
+\end{caixa}
+
+\section{A equação de Kepler}
+\label{sec:kepler_eq}
+
+Para avaliar a posição orbital em um instante arbitrário — e não apenas
+propagá-la passo a passo — resolve-se a equação de Kepler
+\begin{equation}
+M = E - e\sin E, \qquad M=\frac{2\pi}{T}(t-t_p),
+\label{eq:kepler}
+\end{equation}
+relacionando a anomalia média $M$ à anomalia excêntrica $E$; a posição no plano
+orbital sai de $x=a(\cos E-e)$, $y=a\sqrt{1-e^{2}}\sin E$.
+
+A Eq.~\eqref{eq:kepler} é transcendental. O método de Newton--Raphson,
+\begin{equation}
+E_{k+1}=E_k-\frac{E_k-e\sin E_k-M}{1-e\cos E_k},
+\end{equation}
+com o chute $E_0=M+e\sin M$, converge em cerca de quatro iterações para
+$e\lesssim 0.1$ e atinge precisão de máquina. A convergência é quadrática
+porque $1-e\cos E>0$ para $e<1$, de modo que a derivada nunca se anula.
+
+É esta a efeméride adotada, e a razão da escolha é discutida em
+\S\ref{sec:kepleranalitico}: o integrador da
+resposta oceânica precisa avaliar a posição da Lua em $t+\Delta t/2$, o que um
+propagador passo a passo não oferece de graça.
+
+\subsection{Precessões do plano orbital}
+
+Dois movimentos seculares lentos da órbita lunar são incluídos porque governam
+efeitos que a análise harmônica precisa (Capítulo~\ref{cap:harmonica}):
+
+\begin{itemize}
+\item o \textbf{nó ascendente} regride com período de \SI{18.613}{\anos}. A
+  inclinação da órbita lunar em relação ao \emph{equador} oscila entre
+  $\ang{23.44}-\ang{5.15}=\ang{18.3}$ e $\ang{23.44}+\ang{5.15}=\ang{28.6}$;
+\item o \textbf{perigeu} avança com período de \SI{8.847}{\anos}, e é ele que
+  separa as constituintes N\textsubscript{2} e L\textsubscript{2} de
+  M\textsubscript{2}.
+\end{itemize}
+
+\begin{alerta}[Um erro real, encontrado por medida]
+Manter o nó \emph{fixo} é uma simplificação tentadora, e numa implementação
+inicial deste modelo ela deixou a órbita travada por acaso exatamente no máximo
+do ciclo nodal. A consequência foi uma superestimação de 12--18\,\% nas
+constituintes diurnas — detectada porque a amplitude medida de
+O\textsubscript{1} (\num{1.179} em unidades relativas) coincidia com o fator
+nodal máximo tabelado ($f_{\max}=\num{1.181}$), e não com a média. Precessões
+lentas demais para importar em um mês de simulação importam, sim, para
+\emph{calibrar} uma amplitude.
+\end{alerta}
+
+\section{Expansão multipolar: de onde vem a maré}
+\label{sec:multipolo}
+
+Este é o resultado central da Parte~\ref{parte:fundamentos}. Considere o
+potencial gravitacional, por unidade de massa, que um corpo de massa $M$
+localizado em $\vect{d}$ (medido do centro da Terra) produz num ponto
+$\vect{r}$ do interior ou da superfície terrestre:
+\begin{equation}
+\Phi(\vect{r})=-\frac{GM}{|\vect{d}-\vect{r}|}.
+\end{equation}
+Com $\psi$ o ângulo entre $\vect{r}$ e $\vect{d}$, e $r/D\ll 1$, a função
+geratriz dos polinômios de Legendre dá
+\begin{equation}
+\boxed{\;
+\Phi(\vect{r})=-\frac{GM}{D}\sum_{n=0}^{\infty}\left(\frac{r}{D}\right)^{n}
+P_n(\cos\psi).\;}
+\label{eq:multipolo}
+\end{equation}
+
+Cada termo tem um significado físico distinto, e a leitura desta série
+\emph{é} a teoria da maré:
+
+\begin{description}[leftmargin=1.6cm,style=nextline]
+\item[$n=0$: $\;-GM/D$] Constante no espaço. Gradiente nulo: nenhuma força.
+  Irrelevante.
+\item[$n=1$: $\;-\dfrac{GM r}{D^{2}}\cos\psi$] Gera uma força
+  \emph{uniforme} $GM/D^{2}$ dirigida ao corpo — exatamente a aceleração de
+  queda livre do centro da Terra. Este termo é \textbf{integralmente cancelado}
+  pelo termo de arrasto $-m\ddot{\vect{R}}_0$ da Eq.~\eqref{eq:naoinercial}.
+  É o cancelamento que define o problema.
+\item[$n=2$: $\;-\dfrac{GM r^{2}}{D^{3}}P_2(\cos\psi)$] O primeiro termo
+  \textbf{não} cancelado. É o \emph{potencial de maré}. Todo o resto do
+  documento vive aqui.
+\item[$n\ge 3$] Menores por fatores $r/D\approx\num{0.0166}$ (Lua) e
+  $\num{4.3e-5}$ (Sol). O termo $n=3$ da Lua vale $1.7\,\%$ do $n=2$ e é
+  responsável pelas pequenas constituintes de terceiro grau (M\textsubscript{3});
+  não é incluído no modelo aqui descrito.
+\end{description}
+
+\begin{caixa}[A lição em uma linha]
+A maré não é a atração da Lua ($n=1$, cancelada pela queda livre) nem o valor
+absoluto do potencial dela no centro da Terra ($n=0$, constante no espaço,
+portanto sem gradiente e sem força). É o \textbf{termo quadrupolar} da expansão do
+campo do perturbador em torno do centro da Terra — o primeiro que sobrevive à
+mudança para o referencial em queda livre. Daí a dependência $D^{-3}$, e daí a
+Lua vencer o Sol apesar de atrair a Terra 178 vezes menos do que ele
+(\S\ref{sec:solvslua}).
+\end{caixa}
+
+\section{Estrutura lagrangiana, hamiltoniana e simplética}
+\label{sec:simpletica}
+
+O texto-base é newtoniano, mas dois resultados da formulação hamiltoniana são
+usados no Capítulo~\ref{cap:numerica} e convém enunciá-los aqui.
+
+Para um sistema \emph{separável} $H(\vect{q},\vect{p})=T(\vect{p})+V(\vect{q})$
+— o caso das órbitas —, o fluxo exato $\varphi_t$ preserva a 2-forma
+$\dd\vect{p}\wedge\dd\vect{q}$, isto é, é uma transformação canônica. Um
+integrador numérico $\Psi_{\Delta t}$ é \textbf{simplético} quando também
+preserva essa forma exatamente, e não apenas até $\ordem{\Delta t^{p}}$.
+
+O que isso compra é dado pela \emph{análise de erro retrógrado}: existe um
+hamiltoniano modificado
+\begin{equation}
+\widetilde{H}=H+\Delta t^{p}H_{p}+\Delta t^{p+1}H_{p+1}+\cdots
+\label{eq:hmodificado}
+\end{equation}
+tal que a trajetória numérica é a trajetória \emph{exata} de $\widetilde{H}$,
+a menos de termos exponencialmente pequenos em $1/\Delta t$. Como
+$\widetilde{H}$ é conservado exatamente ao longo da trajetória numérica e dista
+$\ordem{\Delta t^{p}}$ de $H$, o erro de energia fica \textbf{limitado} por
+tempos exponencialmente longos, em vez de crescer secularmente
+\cite{hairer2006}.
+
+Métodos não simpléticos — Runge--Kutta explícito, inclusive o RK4 — não
+possuem $\widetilde{H}$: o erro de energia tem componente secular. A
+Tabela~\ref{tab:integradores} mede exatamente isso, e a
+Eq.~\eqref{eq:amplificacao3x} traduz o resultado em erro de maré.
+
+\begin{alerta}[E a armadilha simétrica]
+Simplético \textbf{não} implica mais preciso. Velocity-Verlet é simplético e
+ainda assim fica ordens de grandeza pior que o RK4 nas escalas de tempo deste
+problema, porque é de segunda ordem. A vantagem simplética está no
+\emph{formato} do erro, não na sua magnitude.
+
+E há um segundo limite, mais fundamental: a Eq.~\eqref{eq:hmodificado} pressupõe
+que o sistema \textbf{seja hamiltoniano}. Um amortecimento $2\gamma\dot h$ o
+torna dissipativo, e então não existe $H$ algum a ser modificado: a vantagem
+simplética simplesmente deixa de existir. Some-se a isso que uma força
+dependente da velocidade quebra a separabilidade $H=T(\vect{p})+V(\vect{q})$ de
+que os métodos de \emph{splitting} explícito (Verlet, Yoshida) dependem para
+serem explícitos. É justamente o caso da resposta oceânica do
+Capítulo~\ref{cap:oscilador}, onde o RK4 volta a ser a escolha correta.
+\end{alerta}
+
+% =====================================================================
+\chapter{O oscilador forçado amortecido}
+\label{cap:oscilador}
+
+O texto-base encerra a seção de marés observando que as marés costeiras reais
+superam de longe os \SI{0.54}{\meter} da teoria de equilíbrio e que
+``ressonâncias podem afetar a oscilação natural dos corpos d'água''. O modelo
+mínimo capaz de formalizar essa observação é o oscilador linear forçado, e ele
+merece um capítulo próprio porque toda a Parte~\ref{parte:melhorias} pode ser
+lida como a substituição deste modelo de \emph{um} grau de liberdade por um de
+$10^{5}$.
+
+\section{Equação, admitância e fator de qualidade}
+
+Uma bacia oceânica com período natural $T_0=2\pi/\omega_0$ forçada pela maré de
+equilíbrio $h_{\text{eq}}(t)$ obedece
+\begin{equation}
+\ddot{h}+2\gamma\dot{h}+\omega_0^{2}h=\omega_0^{2}h_{\text{eq}}(t),
+\qquad Q\equiv\frac{\omega_0}{2\gamma}.
+\label{eq:oscilador}
+\end{equation}
+A normalização $\omega_0^2$ do lado direito é escolhida para que a resposta
+estática seja $h\to h_{\text{eq}}$ quando $\omega\to 0$.
+
+Para forçamento monocromático $h_{\text{eq}}=H\cos\omega t$, a solução de
+regime permanente é $h=A(\omega)H\cos(\omega t-\delta(\omega))$ com
+\begin{align}
+A(\omega)&=\frac{\omega_0^{2}}
+  {\sqrt{(\omega_0^{2}-\omega^{2})^{2}+4\gamma^{2}\omega^{2}}},
+\label{eq:admitancia}\\[4pt]
+\delta(\omega)&=\atantwo\!\left(2\gamma\omega,\;\omega_0^{2}-\omega^{2}\right)
+\;\in\;(0,\pi).
+\label{eq:atraso}
+\end{align}
+
+Os três regimes de \eqref{eq:admitancia}--\eqref{eq:atraso} descrevem três
+tipos de costa reais:
+
+\begin{center}
+\begin{tabular}{@{}llll@{}}
+\toprule
+regime & $A$ & $\delta$ & interpretação física \\
+\midrule
+$\omega\ll\omega_0$ & $\to 1$ & $\to 0$ & bacia ``rígida'': segue a maré de equilíbrio \\
+$\omega\approx\omega_0$ & $\to Q$ & $\pi/2$ & ressonância: amplificação enorme \\
+$\omega\gg\omega_0$ & $\to 0$ & $\to\pi$ & bacia lenta: responde \emph{abaixo} do equilíbrio \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+O terceiro regime não é curiosidade formal — há bacias que respondem abaixo do
+equilíbrio. Convém, porém, não usar o Taiti como ilustração, apesar de comum: a
+maré de Papeete é excepcionalmente pequena ($\sim\SI{0.3}{\meter}$, com
+M\textsubscript{2} de poucos centímetros e tábua dominada por
+S\textsubscript{2}) por estar praticamente sobre um anfidromo de
+M\textsubscript{2} do Pacífico Sul — fenômeno que só o
+Capítulo~\ref{cap:anfidromos} explica, e que nada tem a ver com o ramo
+$\omega\gg\omega_0$.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.47\textwidth, height=5.2cm,
+  xlabel={$\omega/\omega_0$}, ylabel={$A(\omega)$},
+  xmin=0, xmax=2.2, ymin=0, ymax=11,
+  grid=both, grid style={line width=.2pt,draw=gray!25},
+  legend style={font=\scriptsize,draw=none,fill=none,at={(0.98,0.98)},anchor=north east},
+  tick label style={font=\scriptsize}, label style={font=\small},
+]
+\addplot[azulforte,very thick,domain=0.01:2.2,samples=300]
+  {1/sqrt((1-x^2)^2 + x^2/(2^2))};
+\addlegendentry{$Q=2$}
+\addplot[laranja,very thick,domain=0.01:2.2,samples=300]
+  {1/sqrt((1-x^2)^2 + x^2/(5^2))};
+\addlegendentry{$Q=5$}
+\addplot[verde,very thick,domain=0.01:2.2,samples=400]
+  {1/sqrt((1-x^2)^2 + x^2/(10^2))};
+\addlegendentry{$Q=10$}
+\end{axis}
+\end{tikzpicture}\hfill
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.47\textwidth, height=5.2cm,
+  xlabel={$\omega/\omega_0$}, ylabel={$\delta$ [graus]},
+  xmin=0, xmax=2.2, ymin=0, ymax=180,
+  ytick={0,45,90,135,180},
+  grid=both, grid style={line width=.2pt,draw=gray!25},
+  legend style={font=\scriptsize,draw=none,fill=none,at={(0.98,0.30)},anchor=east},
+  tick label style={font=\scriptsize}, label style={font=\small},
+]
+\addplot[azulforte,very thick,domain=0.01:2.2,samples=300]
+  {atan2(x/2, 1-x^2)};
+\addlegendentry{$Q=2$}
+\addplot[laranja,very thick,domain=0.01:2.2,samples=400]
+  {atan2(x/5, 1-x^2)};
+\addlegendentry{$Q=5$}
+\addplot[verde,very thick,domain=0.01:2.2,samples=600]
+  {atan2(x/10, 1-x^2)};
+\addlegendentry{$Q=10$}
+\end{axis}
+\end{tikzpicture}
+\caption{Admitância \eqref{eq:admitancia} e atraso de fase \eqref{eq:atraso} do
+oscilador forçado. À ressonância a amplificação vale $Q$ e o atraso é
+exatamente \ang{90}, independentemente de $Q$ — o cruzamento em $\pi/2$ é a
+assinatura observável da ressonância, e é mais robusto que o pico de amplitude.}
+\label{fig:admitancia}
+\end{figure}
+
+\section{Do atraso de fase ao deslocamento espacial do bojo}
+\label{sec:deslocamento}
+
+O texto-base observa que a maré alta não ocorre exatamente sob o eixo
+Terra--Lua. A tradução quantitativa do atraso temporal em deslocamento angular
+requer atenção a um fator 2 que se erra com facilidade.
+
+O padrão de maré é de \emph{grau 2}: a cada rotação relativa da Terra em
+relação à Lua, um observador atravessa \textbf{dois} ciclos completos de fase.
+Portanto, um atraso de fase $\delta$ no sinal temporal corresponde a um
+deslocamento \emph{espacial} do bojo de
+\begin{equation}
+\Delta\lambda=\frac{\delta}{2}.
+\label{eq:deslocamento}
+\end{equation}
+Uma bacia em ressonância, com $\delta=\ang{90}$, tem o bojo adiantado
+\ang{45} em longitude — não \ang{90}.
+
+\section{Transiente, tempo de decaimento e \emph{spin-up}}
+\label{sec:spinup}
+
+A solução homogênea de \eqref{eq:oscilador} decai como
+$e^{-\gamma t}$, ou seja, com constante de tempo
+\begin{equation}
+\tau=\frac{1}{\gamma}=\frac{2Q}{\omega_0}=\frac{Q}{\pi}T_0 .
+\label{eq:decaimento}
+\end{equation}
+
+\begin{alerta}[Uma regra de bolso que custa a figura]
+É comum estimar o transiente por ``$Q$ períodos''. A constante de tempo correta
+é \eqref{eq:decaimento}, e o critério de $6\tau$ corresponde a
+$6Q T_0/\pi\approx\num{1.9}\,Q\,T_0$ — quase o dobro da regra de bolso. Foi
+exatamente esse o erro cometido numa primeira implementação, e o sintoma é
+característico: a amplitude \emph{cresce} durante os primeiros \num{15} dias
+de saída, mascarando por completo o envelope de sizígia/quadratura, que é o
+resultado que se queria mostrar. O diagnóstico só ficou limpo quando a constante
+de tempo foi derivada em vez de estimada.
+
+O custo precisa ser orçado: bacias com $Q=20$ e $T_0\approx\SI{12.5}{\hour}$
+têm $\tau=\SI{3.3}{\day}$, de modo que $6\tau$ são \SI{20}{\day} de
+integração descartada.
+\end{alerta}
+
+O critério adotado é integrar $6\tau$ antes de $t=0$, deixando
+$e^{-6}\approx\num{0.25}\,\%$ de transiente residual — muito abaixo da
+incerteza do próprio modelo.
+
+\section{Justificativa física dos parâmetros concentrados}
+
+$T_0$ e $Q$ não são livres: para uma baía retangular de comprimento $L$ e
+profundidade $H$, aberta numa extremidade, o modo fundamental de quarto de onda
+tem
+\begin{equation}
+T_0=\frac{4L}{\sqrt{gH}}.
+\label{eq:quartodeonda}
+\end{equation}
+Para a Baía de Fundy, $L\approx\SI{270}{\kilo\meter}$ e
+$H\approx\SI{60}{\meter}$ dão $T_0\approx\SI{12.4}{\hour}$, o que já indica por
+que a baía é candidata a ressonância. O cálculo cuidadoso, porém, não é o da
+baía isolada: Garrett \cite{garrett1972} mostrou que o ressoador é o sistema
+acoplado Golfo do Maine--Baía de Fundy, cujo modo livre tem período de
+$\approx\SI{13.3}{\hour}$ com $Q\approx 5$ — \emph{próximo}, e não idêntico, ao
+período de M\textsubscript{2}. É essa quase-ressonância, e não uma coincidência
+exata, a explicação clássica das maiores marés do mundo.
+
+O fator $Q$ mede $2\pi$ vezes a razão entre a energia armazenada e a energia
+dissipada \emph{por ciclo}, por radiação para o oceano aberto e por atrito de
+fundo. É a grandeza que este modelo de um grau de liberdade \emph{não} consegue
+prever a partir da geometria — ela precisa ser ajustada.
+
+Essa é a limitação estrutural, e não acidental, do
+Capítulo~\ref{cap:oscilador}; o Capítulo~\ref{cap:lte} a remove.
+
+% =====================================================================
+\chapter{Dinâmica de fluidos geofísicos: o mínimo necessário}
+\label{cap:fluidos}
+
+Este capítulo estabelece as equações que a Parte~\ref{parte:melhorias} resolve.
+A derivação é padrão \cite{gill1982,pedlosky1987}, mas as hipóteses precisam
+estar explícitas para que os limites do modelo sejam auditáveis.
+
+\section{Equações de Euler no referencial girante}
+
+Aplicando a Eq.~\eqref{eq:naoinercial} a um elemento de fluido e usando
+$\vect{F}=-\nabla p/\rho + \vect{g}_{\text{ef}}$:
+\begin{equation}
+\pd{\vect{u}}{t}+(\vect{u}\cdot\nabla)\vect{u}
++2\vect{\Omega}\times\vect{u}
+=-\frac{1}{\rho}\nabla p-\nabla\Phi+\vect{\mathcal{F}},
+\label{eq:euler}
+\end{equation}
+onde $\Phi$ agrega o geopotencial (gravidade $+$ centrífuga) e o potencial de
+maré, e $\vect{\mathcal{F}}$ reúne as forças de atrito.
+
+\section{A aproximação de águas rasas}
+\label{sec:aguasrasas}
+
+A onda de maré tem comprimento $\lambda\sim c\,T\sim\SI{9000}{\kilo\meter}$
+contra profundidades $H\sim\SI{4}{\kilo\meter}$: a razão de aspecto é
+$H/\lambda\sim\num{4e-4}$. Nesse limite a componente vertical de
+\eqref{eq:euler} degenera no \textbf{equilíbrio hidrostático}
+\begin{equation}
+\pd{p}{z}=-\rho g \;\;\Longrightarrow\;\; p(z)=p_a+\rho g(\zeta-z),
+\end{equation}
+e, com $\rho$ constante (oceano \emph{barotrópico}), o gradiente horizontal de
+pressão passa a ser independente de $z$:
+$\nabla_h p/\rho=g\nabla_h\zeta$. Consequentemente $\vect{u}_h$ também é
+independente de $z$, e integrar a continuidade
+$\nabla\cdot\vect{u}=0$ de $z=-H$ a $z=\zeta$ com as condições cinemáticas de
+fundo e superfície dá (detalhes no Apêndice~\ref{ap:sw})
+\begin{equation}
+\pd{\zeta}{t}+\nabla_h\cdot\big[(H+\zeta)\vect{u}\big]=0.
+\end{equation}
+Como $\zeta/H\sim\num{2.5e-4}$ em oceano aberto, lineariza-se $H+\zeta\to H$.
+
+\begin{caixa}[Barotrópico: o que essa palavra custa]
+Supor $\rho$ constante elimina de vez a \textbf{maré interna} — as ondas que se
+propagam ao longo da picnoclina, com velocidades de $\sim\SI{3}{\meter\per
+\second}$ em vez de \SI{200}{\meter\per\second}. Essas ondas levam consigo
+$\sim\SI{1}{\tera\watt}$, algo entre 25 e 30\,\% da dissipação total. Um modelo
+barotrópico não pode resolvê-las; pode apenas \emph{parametrizar} a perda de
+energia que elas representam, e é exatamente o que faz o termo $r\vect{u}$ do
+Capítulo~\ref{cap:dissipacao}.
+\end{caixa}
+
+\section{Ondas em fluido girante}
+\label{sec:ondas}
+
+Linearizando as equações de águas rasas com $f=2\Omega\sin\phi$ constante
+(plano-$f$) obtém-se a relação de dispersão das \textbf{ondas de Poincaré}
+\begin{equation}
+\sigma^{2}=f^{2}+gH\,(k^{2}+l^{2}),
+\label{eq:poincare}
+\end{equation}
+que mostra de imediato um fato decisivo: ondas com $\sigma<f$ \textbf{não se
+propagam}. A latitude crítica de M\textsubscript{2}, onde $f=\sigma_{M2}$, é
+$\phi\approx\ang{74.5}$: acima dela não há ondas de Poincaré livres nessa
+frequência, e a maré semidiurna deixa de se propagar como onda de
+gravidade-inércia de oceano aberto. Isso \textbf{não} quer dizer que não haja
+maré semidiurna ali — ondas de Kelvin costeiras e ondas topográficas de
+plataforma não têm latitude crítica, e são elas que levam M\textsubscript{2} ao
+Ártico.
+
+Existe, além disso, uma solução que \eqref{eq:poincare} não captura: com uma
+costa em $y=0$ e impondo $v\equiv 0$, resta a \textbf{onda de Kelvin}
+\begin{equation}
+\zeta=\zeta_0\,e^{-y/L_R}\cos(kx-\sigma t),
+\qquad c=\sqrt{gH},\qquad
+L_R=\frac{\sqrt{gH}}{f},
+\label{eq:kelvin}
+\end{equation}
+não dispersiva, presa à costa, decaindo na escala do \textbf{raio de deformação
+de Rossby} $L_R$ e propagando-se sempre com a costa \emph{à direita} no
+hemisfério norte. Em \ang{45} de latitude,
+$L_R=\SI{198}{\meter\per\second}/\SI{1.03e-4}{\per\second}\approx
+\SI{1900}{\kilo\meter}$.
+
+A onda de Kelvin é o objeto central do Capítulo~\ref{cap:anfidromos}: são duas
+delas, incidente e refletida, que geram um ponto anfidrômico.
+
+\section{Análise de escala: Coriolis não é perturbação}
+\label{sec:escala}
+
+Antes de resolver qualquer coisa, convém saber quais termos importam. Para a
+maré M\textsubscript{2} em \ang{45} de latitude:
+\begin{equation}
+\frac{f}{\sigma_{M2}}
+=\frac{\SI{1.031e-4}{\per\second}}{\SI{1.405e-4}{\per\second}}
+=\num{0.73}.
+\end{equation}
+
+O termo de Coriolis é da mesma ordem que a aceleração local: é um efeito de
+\textbf{primeira ordem}, não uma correção. Já a advecção
+$(\vect{u}\cdot\nabla)\vect{u}$ tem número de Rossby
+\begin{equation}
+\mathrm{Ro}=\frac{U}{fL}\sim
+\frac{\SI{0.05}{\meter\per\second}}
+{\SI{1e-4}{\per\second}\times\SI{1e6}{\meter}}
+=\num{5e-4},
+\end{equation}
+o que justifica a linearização em oceano aberto. Em estuários e plataformas,
+com $U\sim\SI{1}{\meter\per\second}$ e $L\sim\SI{10}{\kilo\meter}$,
+$\mathrm{Ro}\sim 1$: é ali que nascem as constituintes de águas rasas
+(M\textsubscript{4}, M\textsubscript{6}), e é ali que a linearização deixa de
+valer.
+
+\begin{observacao}
+Note a coerência interna do argumento: o modelo aqui descrito lineariza a
+advecção \emph{e} não resolve estuários. Os dois limites são o mesmo limite. Um
+modelo que resolvesse estuários numa grade fina precisaria manter o termo
+advectivo.
+\end{observacao}
+
+% =====================================================================
+\part{A força de maré e a teoria de equilíbrio}
+\label{parte:mare}
+% =====================================================================
+
+\chapter{A força de maré}
+\label{cap:forcamare}
+
+\section{Derivação no referencial geocêntrico}
+
+Seguindo o texto-base (Eq.~5.48--5.51), considere uma parcela d'água de massa
+$m$ na superfície da Terra, sob a ação da gravidade terrestre e da atração de
+um corpo perturbador de massa $M$ (a Lua, para fixar ideias). No referencial
+inercial,
+\begin{equation}
+m\,\ddot{\vect{r}}\,' _m=-\frac{GmM_\oplus}{r^{2}}\uvec{e}_r
+-\frac{GmM}{R^{2}}\uvec{e}_R ,
+\tag{T\&M~5.48}
+\label{eq:548}
+\end{equation}
+enquanto o centro da Terra, tratado como partícula livre no campo do corpo,
+obedece
+\begin{equation}
+M_\oplus\,\ddot{\vect{r}}\,'_\oplus=-\frac{GM_\oplus M}{D^{2}}\uvec{e}_D .
+\tag{T\&M~5.49}
+\label{eq:549}
+\end{equation}
+
+Subtraindo \eqref{eq:549} de \eqref{eq:548} — que é precisamente aplicar o
+termo de arrasto $-m\ddot{\vect{R}}_0$ da Eq.~\eqref{eq:naoinercial} —
+obtém-se a aceleração medida no referencial geocêntrico:
+\begin{equation}
+\ddot{\vect{r}}=
+\underbrace{-\frac{GM_\oplus}{r^{2}}\uvec{e}_r}_{\text{gravidade local}}
+\;\underbrace{-\;GM\left(\frac{\uvec{e}_R}{R^{2}}
+-\frac{\uvec{e}_D}{D^{2}}\right)}_{\text{força de maré}} .
+\tag{T\&M~5.50--5.51}
+\label{eq:551}
+\end{equation}
+
+A força de maré é, portanto, uma \textbf{diferença de atrações}, não uma
+atração: a Lua puxa a água próxima mais forte do que puxa o centro da Terra, e
+o centro da Terra mais forte do que a água do lado oposto. Os dois bojos
+antipodais saem daí, e não de nenhuma ``força centrífuga do sistema
+Terra--Lua'' — explicação frequente e incorreta, já que o resultado vale
+igualmente para um corpo em queda livre radial, sem rotação alguma.
+
+\begin{alerta}[A convenção de sinais que mais custa tempo]
+Pela figura do texto-base (Fig.~5-10a):
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+símbolo & aponta de $\to$ para \\
+\midrule
+$\uvec{e}_r$ & centro da Terra $\to$ parcela \\
+$\uvec{e}_R$ & \textbf{Lua} $\to$ parcela \\
+$\uvec{e}_D$ & \textbf{Lua} $\to$ centro da Terra \\
+\bottomrule
+\end{tabular}
+\end{center}
+Inverter $\uvec{e}_D$ transforma a \emph{diferença} de \eqref{eq:551} numa
+\emph{soma}: no ponto sublunar o resultado passa a valer $\approx 2GM/D^{2}$ em
+vez de $2GMr/D^{3}$, ou seja, é maior por um fator $D/r\approx 60$, e troca de
+sinal no lado antipodal. O erro não se anuncia — a expressão continua com
+aparência correta — e só aparece quando se compara a forma exata com a expandida
+\eqref{eq:expandida}, que é imune a ele: ali $\uvec{d}$ entra
+\emph{quadraticamente}, e inverter o versor não muda nada.
+\end{alerta}
+
+Para eliminar a ambiguidade, convém escrever \eqref{eq:551} na forma
+equivalente e autoexplicativa
+\begin{equation}
+\vect{a}_T=\underbrace{\frac{GM(\vect{d}-\vect{r})}{|\vect{d}-\vect{r}|^{3}}}
+_{\text{atração no ponto}}
+-\underbrace{\frac{GM\vect{d}}{|\vect{d}|^{3}}}_{\text{atração no centro}},
+\label{eq:exata}
+\end{equation}
+com $\vect{d}$ o vetor Terra~$\to$~corpo, que é a convenção natural das
+efemérides. A identidade com \eqref{eq:551} decorre de
+$\uvec{e}_R=(\vect{r}-\vect{d})/|\vect{r}-\vect{d}|$ e
+$\uvec{e}_D=-\vect{d}/|\vect{d}|$.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Latex]
+  % Terra
+  \draw[fill=azulclaro,draw=azulforte,thick] (0,0) circle (1.35);
+  \fill[azulforte] (0,0) circle (1.5pt);
+  \node[below left] at (0,0) {\small $\oplus$};
+  % parcela
+  \coordinate (P) at (35:1.35);
+  \fill[laranja] (P) circle (2pt);
+  \node[above right=1pt] at (P) {\small $m$};
+  % Lua
+  \coordinate (L) at (7.6,0);
+  \draw[fill=gray!35,draw=gray!60] (L) circle (0.32);
+  \node[below=6pt] at (L) {\small Lua, $M$};
+  % vetores
+  \draw[->,thick,azulforte] (0,0) -- (P) node[midway,above left=-2pt] {\small $\vect{r}$};
+  \draw[->,thick,laranja] (L) -- (P) node[midway,above=1pt] {\small $R\,\uvec{e}_R$};
+  \draw[->,thick,verde] (L) -- (0,0) node[midway,below=2pt] {\small $D\,\uvec{e}_D$};
+  \draw[dashed,gray] (0,0) -- (8.2,0);
+  \draw (1.1,0) arc (0:35:1.1);
+  \node at (0.95,0.28) {\small $\theta$};
+\end{tikzpicture}
+\caption{Geometria da Eq.~\eqref{eq:551}. Os versores $\uvec{e}_R$ e
+$\uvec{e}_D$ apontam \emph{a partir da Lua}; $\uvec{e}_r$ e $\theta$ são
+medidos no centro da Terra. A figura não está em escala:
+$D/r_\oplus\approx 60$.}
+\label{fig:geometria}
+\end{figure}
+
+\section{Expansão em $r/D$ e o tensor de maré}
+
+Com $r/D=\num{0.0166}$ para a Lua, expandir \eqref{eq:exata} e reter o primeiro
+termo não nulo dá, no ponto sublunar e em quadratura,
+\begin{align}
+F_{Tx}&=+\frac{2GmM r}{D^{3}}, \tag{T\&M~5.52}\label{eq:552}\\
+F_{Ty}&=-\frac{GmM r}{D^{3}}, \tag{T\&M~5.53}
+\end{align}
+e, para um ponto qualquer a um ângulo $\theta$ do eixo Terra--Lua,
+\begin{equation}
+F_{Tx}=\frac{2GmMr\cos\theta}{D^{3}},\qquad
+F_{Ty}=-\frac{GmMr\sin\theta}{D^{3}} .
+\tag{T\&M~5.54a,b}
+\label{eq:554}
+\end{equation}
+
+A forma vetorial tridimensional — que é a implementada — é
+\begin{equation}
+\boxed{\;\vect{a}_T(\vect{r})=\frac{GM}{D^{3}}
+\left[3(\vect{r}\cdot\uvec{d})\,\uvec{d}-\vect{r}\right].\;}
+\label{eq:expandida}
+\end{equation}
+Com $\uvec{d}=\uvec{x}$ e $\vect{r}=(x,y,z)$, ela devolve
+$(GM/D^{3})(2x,-y,-z)$, isto é, \eqref{eq:552} e~(5.53) simultaneamente.
+
+\begin{observacao}[Leitura tensorial]
+A Eq.~\eqref{eq:expandida} é $a_{T,i}=T_{ij}r_j$ com o \emph{tensor de maré}
+\begin{equation}
+T_{ij}=-\pd{^{2}\Phi}{x_i\partial x_j}\bigg|_{\vect{r}=0}
+=\frac{GM}{D^{3}}\left(3\hat d_i\hat d_j-\delta_{ij}\right),
+\end{equation}
+cujo traço é $\;\mathrm{tr}\,T=\frac{GM}{D^{3}}(3-3)=0$. O traço nulo é a
+equação de Laplace $\nabla^{2}\Phi=0$: não há massa no ponto considerado. É por
+isso que a compressão em duas direções vem sempre acompanhada de \emph{uma}
+distensão. O traço nulo obriga apenas que os três autovalores somem zero;
+combinado com a simetria axial em torno de $\uvec{d}$, isso fixa a razão
+$(+2,-1,-1)$ — obrigatória, e não uma escolha do modelo.
+\end{observacao}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[scale=1.5,>=Latex]
+  \draw[fill=azulclaro,draw=azulforte,thick] (0,0) circle (1);
+  \foreach \t in {0,15,...,345}{
+    \pgfmathsetmacro{\ax}{0.42*2*cos(\t)}
+    \pgfmathsetmacro{\ay}{-0.42*sin(\t)}
+    \draw[->,azulforte,thick]
+      ({cos(\t)},{sin(\t)}) -- ++({\ax},{\ay});
+  }
+  \draw[dashed,gray] (-2.2,0) -- (2.9,0);
+  \node[gray] at (2.65,0.22) {\small $\to$ Lua};
+  \node at (0,-2.15) {};
+\end{tikzpicture}
+\caption{Campo da Eq.~\eqref{eq:554} na superfície: distensão de magnitude
+$2GMr/D^{3}$ ao longo do eixo Terra--Lua, compressão de magnitude $GMr/D^{3}$
+perpendicularmente a ele. As componentes tangenciais — e não as radiais — são
+as que efetivamente movem a água, porque a componente radial compete com
+$g$ e vale $\sim 10^{-7}g$.}
+\label{fig:campo}
+\end{figure}
+
+\section{O erro da expansão, medido}
+
+A diferença relativa entre \eqref{eq:exata} e \eqref{eq:expandida}, calculada
+numericamente sobre a superfície terrestre para a Lua, fica entre
+\SI{1.7}{\percent} e \SI{2.5}{\percent} conforme o ângulo — exatamente
+$\ordem{r/D}$, como o texto-base afirma. Dobrar $r/D$ dobra o erro, o que
+confirma a ordem, e não apenas a magnitude.
+
+\begin{caixa}[Metodologia: por que manter as duas formas]
+A forma exata \eqref{eq:exata} é tão barata quanto a expandida e mais precisa;
+manter as duas implementadas não serve ao cálculo, serve à \emph{auditoria}. É a comparação
+entre elas que transforma ``a expansão é $\ordem{r/D}$'' de afirmação de
+livro-texto em resultado medido — e foi ela que revelou o erro de sinal em
+$\uvec{e}_D$. Uma implementação que contenha apenas a versão que de fato usa não tem
+como detectar esse tipo de erro.
+\end{caixa}
+
+% =====================================================================
+\chapter{O potencial de maré e a maré de equilíbrio}
+\label{cap:potencial}
+
+\section{Do campo de forças ao potencial}
+
+O texto-base trabalha só com forças. Para obter a \emph{forma da superfície} é
+preciso o potencial, que se obtém integrando $\vect{F}=-\nabla U$ a partir de
+\eqref{eq:554} — ou, equivalentemente, lendo o termo $n=2$ da expansão
+multipolar \eqref{eq:multipolo}:
+\begin{equation}
+\boxed{\;
+\frac{U_T}{m}=-\frac{GM}{2D^{3}}\left[3(\vect{r}\cdot\uvec{d})^{2}-r^{2}\right]
+=-\frac{GMr^{2}}{2D^{3}}\left(3\cos^{2}\psi-1\right)
+=-\frac{GMr^{2}}{D^{3}}P_2(\cos\psi),\;}
+\label{eq:potencial}
+\end{equation}
+com $\psi$ o ângulo entre a parcela e o eixo Terra--corpo. Derivando de volta
+recupera-se $-\partial U/\partial x=2GMx/D^{3}$ e
+$-\partial U/\partial y=-GMy/D^{3}$, o que fecha a consistência com
+\eqref{eq:552}--(T\&M~5.53), o que se verifica também por diferenciação
+numérica direta.
+
+\section{A superfície de equilíbrio}
+
+A hipótese de \textbf{equilíbrio} é que a superfície do oceano é uma
+equipotencial do campo total. Se assim for, a elevação satisfaz
+$g\,h+U_T/m=\text{const}$, ou seja $h=-U_T/(mg)$:
+\begin{equation}
+h_{\text{eq}}(\psi)=\frac{GMr^{2}}{2gD^{3}}\left(3\cos^{2}\psi-1\right)
+=\frac{1}{2}\frac{M}{M_\oplus}\frac{r^{4}}{D^{3}}\left(3\cos^{2}\psi-1\right),
+\label{eq:heq}
+\end{equation}
+onde a segunda forma usou $g=GM_\oplus/r^{2}$ e elimina $G$ e $g$ do cálculo —
+detalhe numérico útil, porque $G$ é a constante fundamental menos bem conhecida.
+
+A diferença entre maré alta ($\psi=0$) e baixa ($\psi=\ang{90}$) — a
+\emph{excursão} da maré, e não a sua amplitude — reproduz a Eq.~5.55 do
+texto-base:
+\begin{equation}
+h=\frac{3GMr^{2}}{2gD^{3}} .
+\tag{T\&M~5.55}
+\label{eq:555}
+\end{equation}
+
+O fator $(3\cos^{2}\psi-1)$ tem máximos em $\psi=0$ \emph{e} $\psi=\ang{180}$:
+os dois bojos antipodais, e portanto \textbf{duas} marés altas por dia lunar.
+Este é o resultado contraintuitivo que Galileu não conseguiu explicar e que
+mede a distância entre uma teoria correta e uma plausível.
+
+\section{As três espécies: decomposição em harmônicos esféricos}
+\label{sec:especies}
+
+A Eq.~\eqref{eq:potencial} está escrita em termos de $\psi$, ângulo que depende
+simultaneamente da posição do observador e da posição instantânea do corpo. Para
+separar geografia de astronomia — o que é indispensável à análise harmônica —
+usa-se
+\begin{equation}
+\cos\psi=\sin\phi\sin\delta+\cos\phi\cos\delta\cos\mathcal{H},
+\end{equation}
+com $\phi$ a latitude do observador, $\delta$ a declinação do corpo e $H$ o
+ângulo horário — grafado $\mathcal{H}$ para não colidir com a profundidade
+$H$ da Parte~\ref{parte:melhorias}. O teorema da adição dos harmônicos esféricos
+(Apêndice~\ref{ap:legendre}) então fatora $P_2(\cos\psi)$ em três termos:
+\begin{equation}
+\boxed{
+\begin{aligned}
+P_2(\cos\psi)=\;&P_2(\sin\phi)\,P_2(\sin\delta) &&\text{(espécie 0: longo período)}\\
++\;&\tfrac13 P_2^{1}(\sin\phi)\,P_2^{1}(\sin\delta)\cos\mathcal{H} &&\text{(espécie 1: diurna)}\\
++\;&\tfrac1{12}P_2^{2}(\sin\phi)\,P_2^{2}(\sin\delta)\cos 2\mathcal{H} &&\text{(espécie 2: semidiurna)}
+\end{aligned}}
+\label{eq:especies}
+\end{equation}
+com $P_2(x)=\tfrac12(3x^{2}-1)$, $P_2^{1}(x)=3x\sqrt{1-x^{2}}$ e
+$P_2^{2}(x)=3(1-x^{2})$.
+
+As dependências em latitude que daí resultam são as formas geodésicas padrão
+com que cada constituinte é escrita:
+\begin{center}
+\begin{tabular}{@{}llll@{}}
+\toprule
+espécie & dependência em $\phi$ & modulação temporal & exemplos \\
+\midrule
+0 (longo período) & $\tfrac12(3\sin^{2}\phi-1)$ & $\cos(\sigma t)$ & Mf, Mm, Ssa \\
+1 (diurna) & $\sin 2\phi$ & $\cos(\sigma t+\lambda)$ & K\textsubscript{1}, O\textsubscript{1}, P\textsubscript{1} \\
+2 (semidiurna) & $\cos^{2}\phi$ & $\cos(\sigma t+2\lambda)$ & M\textsubscript{2}, S\textsubscript{2}, N\textsubscript{2} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Três consequências físicas imediatas, todas observáveis:
+
+\begin{itemize}
+\item as marés \textbf{semidiurnas} anulam-se nos polos ($\cos^{2}\phi=0$) e são
+  máximas no equador;
+\item as \textbf{diurnas} anulam-se no equador \emph{e} nos polos, com máximo em
+  \ang{45} — e, mais importante, seu coeficiente contém
+  $P_2^{1}(\sin\delta)\propto\sin 2\delta$, ou seja, \textbf{desaparecem quando
+  a declinação é nula}. A desigualdade diurna é um efeito de declinação;
+\item as de \textbf{longo período} têm um coeficiente que muda de sinal em
+  $\phi=\ang{35.26}$, o que explica a correção de fase de \ang{180} aplicada a
+  essa espécie na análise harmônica (\S\ref{sec:correcaofase}).
+\end{itemize}
+
+\section{Números reproduzidos}
+\label{sec:numeros}
+
+Calculados com as constantes exatas adotadas pelo texto-base, e não com as
+constantes modernas, que diferem em $\sim\SI{0.1}{\percent}$ e deslocam $h$ na
+terceira casa decimal:
+
+\begin{table}[htbp]
+\centering
+\caption{Reprodução dos resultados do texto-base. A concordância na terceira
+casa decimal valida simultaneamente a álgebra e as constantes.}
+\label{tab:numeros}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+grandeza & calculado & texto-base \\
+\midrule
+$h$ lunar (excursão), Eq.~\eqref{eq:555} & \SI{0.5377}{\meter} & \SI{0.54}{\meter} \\
+$h$ solar (excursão) & \SI{0.2461}{\meter} & --- \\
+razão Sol/Lua (efeito de maré) & \num{0.4577} & \num{0.46} \\
+razão Sol/Lua (atração direta) & \num{178} & $\sim\!\num{175}$ \\
+$r/D$ (Lua) & \num{0.0166} & \num{0.02} \\
+período de M\textsubscript{2} & \SI{12}{\hour}\,\SI{25.2}{\minute} & \SI{12}{\hour}\,\SI{26}{\minute} \\
+erro da expansão & \SIrange{1.7}{2.5}{\percent} & $\ordem{r/D}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Sol contra Lua: o argumento decisivo}
+\label{sec:solvslua}
+
+O contraste entre as duas primeiras razões da Tabela~\ref{tab:numeros} é o
+coração da seção do livro:
+\begin{equation}
+\frac{F_{\text{Sol}}}{F_{\text{Lua}}}
+=\frac{M_\odot}{M_{\text{Lua}}}\left(\frac{D_{\text{Lua}}}{D_\odot}\right)^{2}
+=\num{178},
+\qquad
+\frac{h_\odot}{h_{\text{Lua}}}
+=\frac{M_\odot}{M_{\text{Lua}}}\left(\frac{D_{\text{Lua}}}{D_\odot}\right)^{3}
+=\num{0.458}.
+\end{equation}
+
+\textbf{O Sol atrai a Terra 178 vezes mais forte que a Lua e ainda assim produz
+menos da metade da maré.} A única diferença entre as duas expressões é um fator
+$D_{\text{Lua}}/D_\odot=\num{2.6e-3}$ — a marca registrada do quadrupolo. Quem
+entendeu esta linha entendeu \S\ref{sec:multipolo}.
+
+\subsection{Sizígia, quadratura e o erratum do texto}
+
+Somando as duas marés em fase e em oposição:
+\begin{equation}
+h_{\text{sizígia}}=(1+\num{0.4577})\,h_{\text{Lua}}=\num{1.46}\,h,
+\qquad
+h_{\text{quadratura}}=(1-\num{0.4577})\,h_{\text{Lua}}=\num{0.54}\,h ,
+\end{equation}
+com período de batimento igual a meio mês sinódico, \SI{14.77}{\day}.
+
+\begin{alerta}[Erratum no texto-base]
+A p.~203 afirma: \emph{``The maximum tide, which occurs every 2 weeks, should be
+$1.46h=\SI{0.83}{\meter}$ for the spring tides.''} Com
+$h=\SI{0.54}{\meter}$, porém, $1.46\times 0.54=\SI{0.79}{\meter}$, não
+\SI{0.83}{\meter}. O fator e o valor impressos são mutuamente inconsistentes
+($0.83/1.46=\SI{0.57}{\meter}$, que não é o $h$ do próprio exemplo). O valor
+aritmeticamente correto é \SI{0.785}{\meter}, e é o adotado aqui.
+\end{alerta}
+
+\section{Terra elástica: números de Love}
+\label{sec:love}
+
+A Terra sólida também se deforma sob a mesma força. Dois números adimensionais
+de grau 2 descrevem o efeito: $h_2\approx\num{0.61}$, a razão entre o
+deslocamento radial do solo e a maré de equilíbrio, e $k_2\approx\num{0.30}$, a
+razão entre o potencial adicional gerado pela redistribuição de massa e o
+potencial forçante.
+
+Um marégrafo está preso ao solo, e mede a diferença entre a superfície do mar e
+o solo que também subiu. A maré \emph{medida} é portanto reduzida pelo fator
+diminutivo
+\begin{equation}
+\gamma_2\equiv 1+k_2-h_2\approx\num{0.69}.
+\label{eq:love}
+\end{equation}
+O mesmo fator aparece na Parte~\ref{parte:melhorias} multiplicando a forçante
+das Equações de Maré de Laplace. A convenção adotada aqui é deliberada e vale
+registrá-la: nos resultados de maré de equilíbrio o fator é \emph{omitido}, para
+reproduzir os números clássicos de Terra rígida; no modelo dinâmico ele é
+\emph{aplicado}, porque ali o objetivo é reproduzir o oceano.
+
+% =====================================================================
+\chapter{Primeiro nível dinâmico: bacias como osciladores}
+\label{cap:bacias}
+
+A teoria de equilíbrio prevê no máximo \SI{0.54}{\meter} — e só no equador, com
+a Lua no zênite; menos em qualquer outro lugar, pela dependência em latitude de
+\eqref{eq:especies}. Marés reais vão de
+\SI{0.2}{\meter} no Taiti a \SI{16}{\meter} na Baía de Fundy — duas ordens de
+grandeza de espalhamento. O primeiro modelo capaz de produzir esse
+espalhamento é o do Capítulo~\ref{cap:oscilador} aplicado estação a estação:
+cada bacia é um oscilador com seu $T_0$ e seu $Q$, forçado pela maré de
+equilíbrio calculada no local.
+
+\section{Resultados e sua leitura}
+
+\begin{table}[htbp]
+\centering
+\caption{Amplitude modelada pelo oscilador de um grau de liberdade contra
+observação. O modelo acerta a ordem de
+grandeza em baixa latitude e subestima por 2--3$\times$ nas bacias
+ressonantes de alta latitude.}
+\label{tab:estacoes}
+\begin{tabular}{@{}lrrl@{}}
+\toprule
+estação & modelado & observado & caráter da bacia \\
+\midrule
+Rio de Janeiro & \SI{1.11}{\meter} & \SI{1.20}{\meter} & amplificação modesta \\
+Santos & \SI{1.15}{\meter} & \SI{1.40}{\meter} & micro-maré \\
+Belém & \SI{2.99}{\meter} & \SI{3.50}{\meter} & foz amplificadora \\
+São Luís & \SI{4.08}{\meter} & \SI{6.60}{\meter} & plataforma ampla \\
+\textbf{Burntcoat Head (Fundy)} & \textbf{\SI{5.2}{\meter}} & \textbf{\SI{16.0}{\meter}} & quase ressonante \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+O padrão da Tabela~\ref{tab:estacoes} é informativo: o erro cresce
+sistematicamente com a latitude e com o grau de ressonância. Duas causas
+físicas, ambas identificáveis:
+
+\begin{enumerate}
+\item \textbf{A forçante local é fraca em alta latitude.} Pela
+  Eq.~\eqref{eq:especies}, a componente semidiurna varia com $\cos^{2}\phi$: a
+  \ang{45} ela vale \SI{50}{\percent} da equatorial, e a maré de equilíbrio
+  \emph{total} no local cerca de \SI{66}{\percent}. Um ponto em Fundy jamais
+  chega perto do ponto sublunar.
+\item \textbf{A energia não vem de onde o modelo supõe.} Os \SI{16}{\meter} de
+  Fundy não são produzidos pelo forçamento astronômico \emph{local}; são o
+  resultado da co-oscilação da baía com o sistema anfidrômico do Atlântico
+  Norte inteiro \cite{garrett1972}. A baía é um ressonador excitado pela maré
+  oceânica em sua boca, não pelo potencial de maré em seu interior.
+\end{enumerate}
+
+\begin{caixa}[Diagnóstico honesto de um modelo]
+A subestimação em Fundy \textbf{não é erro de ajuste} — nenhum valor de $Q$ a
+corrige sem estragar o resto, porque a via de excitação está ausente da
+formulação. É física faltante. Isso muda o que se deve fazer a seguir: não
+recalibrar, e sim trocar de modelo. Os parâmetros $T_0$ e $Q$ de cada bacia
+são, portanto, parâmetros concentrados ajustados, e é assim que devem ser
+declarados — apresentá-los como se fossem deriváveis da geometria falsearia a
+natureza do modelo.
+\end{caixa}
+
+\section{O que este nível já entrega}
+
+Apesar do limite, o modelo de bacia produz três resultados que a teoria de
+equilíbrio pura não produz, e todos são verificáveis:
+
+\begin{itemize}
+\item \textbf{amplificação e supressão} — uma bacia lenta ($T_0\gg T_{M2}$)
+  responde \emph{abaixo} do equilíbrio, $A<1$, comportamento que só existe no
+  regime $\omega\gg\omega_0$ da Fig.~\ref{fig:admitancia} e que a teoria de
+  equilíbrio não admite;
+\item \textbf{atraso de fase} — via \eqref{eq:deslocamento}, o bojo dinâmico
+  aparece deslocado do eixo Terra--Lua, reproduzindo qualitativamente a
+  Fig.~5-13 do texto-base;
+\item \textbf{envelope de sizígia/quadratura} — o batimento de \SI{14.77}{\day}
+  emerge da soma das forçantes lunar e solar, sem ser codificado.
+\end{itemize}
+
+% =====================================================================
+\chapter{Por que a teoria de equilíbrio tem de falhar}
+\label{cap:falha}
+
+O capítulo anterior mostrou que a teoria de equilíbrio erra em \emph{magnitude}.
+Este mostra algo mais forte: ela erra em \textbf{forma funcional}, e o
+argumento é de uma linha.
+
+\section{A corrida que a onda perde}
+\label{sec:corrida}
+
+A maré de equilíbrio pressupõe que o oceano assume instantaneamente a forma da
+equipotencial. Isso exige que a informação — isto é, a onda de gravidade —
+viaje ao menos tão rápido quanto o padrão forçante se desloca. Compare:
+\begin{align}
+\text{onda de gravidade em água rasa:}\quad
+c&=\sqrt{gH}=\sqrt{\num{9.81}\times\num{4000}}
+=\SI{198}{\meter\per\second},\\
+\text{ponto sublunar, varrendo o solo:}\quad
+v&=\frac{2\pi a}{T_{\text{dia lunar}}}
+=\frac{2\pi\times\SI{6.371e6}{\meter}}{\SI{89428}{\second}}
+=\SI{448}{\meter\per\second}.
+\end{align}
+
+\begin{caixa}[A onda perde por $\num{2.3}\times$]
+Não existe bojo hidrostático sob a Lua porque o oceano \textbf{não consegue
+construí-lo}. Para acompanhar o ponto sublunar seria preciso
+$H=v^{2}/g\approx\SI{20}{\kilo\meter}$ de profundidade — cinco vezes o oceano
+real. O que existe não é um bojo atrasado: é uma \emph{onda forçada} muito
+abaixo da sua velocidade de fase natural, que reflete nas costas e ressoa nos
+modos de cada bacia.
+\end{caixa}
+
+\begin{alerta}[Qual velocidade comparar]
+A velocidade relevante do ponto sublunar é a \textbf{relativa ao solo},
+$2\pi a/T_{\text{dia lunar}}=\SI{448}{\meter\per\second}$, e não
+$\Omega a=\SI{465}{\meter\per\second}$ — esta é a velocidade de um ponto do
+equador no espaço inercial, que não é com quem a onda compete. A diferença é de
+\SI{4}{\percent} e não muda a conclusão, mas a versão errada aparece com
+frequência na literatura de divulgação.
+\end{alerta}
+
+\section{Coriolis não é uma correção}
+
+Retomando \S\ref{sec:escala}: a \ang{45} de latitude, $f/\sigma_{M2}=\num{0.73}$.
+Um termo dessa magnitude não pode ser tratado perturbativamente. E ele
+\textbf{muda a topologia da solução}: sob Coriolis a onda forçada organiza-se em
+sistemas rotativos em torno de pontos de amplitude nula, como se demonstra no
+Capítulo~\ref{cap:anfidromos}.
+
+A teoria de equilíbrio não tem como produzir esses pontos. Nela a maré está
+sempre em fase com o potencial, de modo que a fase assume apenas dois valores
+(\ang{0} e \ang{180}) e \textbf{nunca circula}. A verificação é direta:
+aplicando ao campo de equilíbrio o mesmo detector de anfidromos usado no campo
+dinâmico (\S\ref{sec:topologia}), ele não encontra nenhum.
+
+\begin{caixa}[Metodologia: testar a ausência]
+Verificar que um modelo \emph{não} produz um fenômeno é tão importante quanto
+verificar que o outro produz. Sem esse teste, a detecção de anfidromos no
+modelo dinâmico poderia ser um artefato do detector. Com ele, os dois modelos
+são submetidos ao mesmo instrumento e respondem de forma qualitativamente
+distinta — o que torna a diferença atribuível à física, e não ao diagnóstico.
+\end{caixa}
+
+\section{O que falta acrescentar}
+
+O diagnóstico dos Capítulos~\ref{cap:bacias} e~\ref{cap:falha} determina a
+lista de melhorias que a Parte~\ref{parte:melhorias} implementa:
+
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+sintoma & causa & correção implementada \\
+\midrule
+sem anfidromos & Coriolis ausente & LTE com $f=2\Omega\sin\phi$ (Cap.~\ref{cap:lte}) \\
+onda instantânea & propagação ausente & águas rasas, $c=\sqrt{gH}$ (Cap.~\ref{cap:lte}) \\
+costas invisíveis & geometria ausente & batimetria ETOPO + máscara (\S\ref{sec:batimetria}) \\
+amplitude sem limite & dissipação ausente & atrito de fundo + maré interna (Cap.~\ref{cap:dissipacao}) \\
+geoide rígido & auto-atração ausente & SAL, $\beta$ (Cap.~\ref{cap:sal}) \\
+$Q$ arbitrário & ressonância imposta à mão & modos emergem da bacia real \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% =====================================================================
+\part{Fundamento teórico e formulação das melhorias}
+\label{parte:melhorias}
+% =====================================================================
+
+\chapter{As Equações de Maré de Laplace}
+\label{cap:lte}
+
+Este capítulo formula a primeira e mais importante das melhorias: substituir a
+hipótese de equilíbrio pela hidrodinâmica. É o salto de 1687 para 1776 — de
+Newton para Laplace.
+
+\section{Derivação}
+
+Parta das equações de águas rasas (\S\ref{sec:aguasrasas}) na esfera girante,
+com $a$ o raio da Terra, $\lambda$ a longitude, $\phi$ a latitude,
+$\vect{u}=(u,v)$ a velocidade média na vertical (o transporte é $H\vect{u}$) e
+$\zeta$ a elevação. A
+linearização é justificada por $\mathrm{Ro}\sim\num{5e-4}$ e
+$\zeta/H\sim\num{2.5e-4}$ (\S\ref{sec:escala}). Escrevendo os operadores
+métricos em coordenadas esféricas:
+
+\begin{empheq}[box=\fbox]{align}
+\pd{\zeta}{t}&=-\frac{1}{a\cos\phi}
+\left[\pd{(Hu)}{\lambda}+\pd{(Hv\cos\phi)}{\phi}\right],
+\label{eq:lte_cont}\\[4pt]
+\pd{u}{t}&=\;\;f v-\frac{g}{a\cos\phi}\pd{\zeta'}{\lambda}
+-\frac{C_d\,|\vect{u}|\,u}{H}-r\,u,
+\label{eq:lte_u}\\[4pt]
+\pd{v}{t}&=-f u-\frac{g}{a}\pd{\zeta'}{\phi}
+-\frac{C_d\,|\vect{u}|\,v}{H}-r\,v,
+\label{eq:lte_v}
+\end{empheq}
+
+com $f=2\Omega\sin\phi$ e o \textbf{desvio de equipotencial}
+\begin{equation}
+\boxed{\;\zeta'=(1-\beta)\,\zeta-\zeta_{\text{eq}}.\;}
+\label{eq:desvio}
+\end{equation}
+
+A Eq.~\eqref{eq:desvio} concentra duas das melhorias e merece leitura cuidadosa.
+O que impulsiona a água não é o gradiente da superfície do mar, e sim o
+gradiente da superfície \emph{relativa à equipotencial instantânea}: um oceano
+cuja superfície já coincidisse com a equipotencial não sentiria força alguma. O
+termo $-\zeta_{\text{eq}}$ é o forçamento astronômico
+(Capítulo~\ref{cap:potencial}, com o fator de Love \eqref{eq:love}); o fator
+$(1-\beta)$ é a auto-atração e carga do Capítulo~\ref{cap:sal}.
+
+\begin{table}[htbp]
+\centering
+\caption{Termos das Eq.~\eqref{eq:lte_cont}--\eqref{eq:lte_v}, o que cada um
+representa e o valor adotado.}
+\label{tab:termos}
+\begin{tabular}{@{}llp{6.4cm}l@{}}
+\toprule
+termo & nome & papel físico & valor \\
+\midrule
+$f=2\Omega\sin\phi$ & Coriolis & sem ele não há anfidromo nem onda de Kelvin & --- \\
+$H(\lambda,\phi)$ & batimetria & fixa $c=\sqrt{gH}$ e as fronteiras & ETOPO 2022 \\
+$\zeta_{\text{eq}}$ & forçante & potencial de grau 2 (Lua $+$ Sol) & Eq.~\eqref{eq:heq} \\
+$\beta$ & SAL & a maré deforma o geoide e a crosta & \num{0.09} \\
+$C_d$ & atrito de fundo & camada limite turbulenta, $\sim\!70\%$ da dissipação & \num{0.0025} \\
+$r$ & maré interna & conversão barotrópica $\to$ baroclínica & \SI{1e-5}{\per\second} \\
+$\gamma_2$ & Terra elástica & $1+k_2-h_2$ & \num{0.69} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Condições de contorno}
+
+\begin{itemize}
+\item \textbf{Longitude periódica}: $\lambda=\ang{-180}$ e $\lambda=\ang{180}$
+  são a mesma coluna de células, sem tratamento especial.
+\item \textbf{Costas: fluxo normal nulo}, $\vect{u}\cdot\uvec{n}=0$. É a
+  condição que \textbf{reflete} a onda — e portanto a que produz os sistemas
+  anfidrômicos. Sem costas não há anfidromos; com costas eles são inevitáveis.
+\item \textbf{Fronteira polar}: acima de \ang{86} de latitude tudo vira terra
+  (\S\ref{sec:batimetria}).
+\end{itemize}
+
+\begin{observacao}[Por que não há condição de radiação]
+Um domínio global fechado não tem fronteira aberta: a energia entra pelo
+trabalho da forçante astronômica e sai pela dissipação. Isso torna o
+Capítulo~\ref{cap:dissipacao} não opcional — sem termo dissipativo, o modelo
+acumula energia indefinidamente, e é exatamente o que se mede na primeira linha
+da Tabela~\ref{tab:atrito} ($r=0$ dá viés de $+\SI{33}{\centi\meter}$).
+\end{observacao}
+
+\section{Batimetria: a geometria como dado de entrada}
+\label{sec:batimetria}
+
+A maré de equilíbrio não precisa saber onde há água. Um modelo dinâmico precisa
+de tudo, e essa é a segunda melhoria estrutural. A fonte é o \textbf{ETOPO 2022}
+(\SI{1}{\arcminute}, NOAA NCEI), subamostrado no servidor via OPeNDAP para
+\SI{5}{\arcminute} — divisor exato de \ang{0.25}, \ang{0.5} e \ang{1.0}, de
+modo que qualquer resolução do modelo sai de um agrupamento inteiro de células.
+
+Três decisões de tratamento do dado, todas com consequência física:
+
+\begin{enumerate}
+\item \textbf{A média de profundidade é feita apenas sobre as subcélulas
+  oceânicas.} Misturar cotas positivas de terra na média rebaixaria
+  artificialmente a profundidade das células costeiras — justamente onde a maré
+  é mais sensível. Uma célula conta como água se a fração oceânica for
+  $\ge\num{0.5}$.
+\item \textbf{Profundidade mínima de \SI{20}{\meter}.} Em água muito rasa o
+  atrito quadrático $C_d|\vect{u}|u/H$ diverge, e o esquema perde estabilidade.
+  É o valor usual em modelos barotrópicos globais.
+\item \textbf{Limite polar em \ang{86}.} A largura zonal da célula é
+  $\Delta x=a\,\Delta\lambda\cos\phi$, que tende a zero no polo e levaria o
+  passo estável junto (\S\ref{sec:cfl}). Em \ang{86} e \ang{1.0} de resolução a
+  última linha de células molhadas, centrada em \ang{85.5}, ainda tem
+  $\Delta x\approx\SI{8.7}{\kilo\meter}$, o que mantém
+  $\Delta t\approx\SI{19}{\second}$. É restrição \emph{numérica}, e está
+  declarada como tal — não é uma afirmação sobre a maré ártica.
+\end{enumerate}
+
+\section{Duas escolhas de método que definem a rodada}
+
+\subsection{Forçamento monocromático}
+\label{sec:monocromatico}
+
+O modelo aceita dois regimes de forçamento, e o padrão de produção é o segundo:
+
+\begin{description}[style=nextline,leftmargin=0.8cm]
+\item[Astronômico] Lua e Sol a partir das efemérides, via \eqref{eq:heq}.
+  Fisicamente mais rico, mas separar M\textsubscript{2} de S\textsubscript{2}
+  na análise harmônica exige, pelo critério de Rayleigh
+  (\S\ref{sec:rayleigh}), mais de \SI{14.8}{\day} de registro \emph{após} o
+  spin-up.
+\item[Monocromático] Uma constituinte de cada vez, na forma geodésica padrão de
+  \S\ref{sec:especies}:
+  \begin{equation}
+  \zeta_{\text{eq}}=\gamma_2\,A_c\,S_{n}(\phi)\,
+  \cos\!\left(\sigma_c t+n\lambda\right),
+  \label{eq:forcante_mono}
+  \end{equation}
+  com $n$ a espécie e $S_n$ a forma latitudinal correspondente. A resposta é
+  monocromática por construção, e bastam o spin-up e alguns períodos para
+  extrair amplitude e fase com precisão. É como TPXO e FES operam.
+\end{description}
+
+O sinal $+n\lambda$ em \eqref{eq:forcante_mono} faz o padrão migrar para
+\textbf{oeste} conforme o tempo avança, que é o sentido em que o ponto sublunar
+se desloca visto de um referencial preso à Terra. Trocar esse sinal produz uma
+solução espelhada, com anfidromos girando ao contrário — um erro que a
+estatística de rotação do \S\ref{sec:rotacao} detectaria imediatamente.
+
+\subsection{Análise harmônica embutida}
+\label{sec:embutida}
+
+Guardar o campo a cada passo custaria dezenas de gigabytes. Em vez disso, os
+produtos $\zeta\cos\sigma t$ e $\zeta\sin\sigma t$ são acumulados
+\textbf{durante} a integração e o sistema normal é resolvido no fim
+(\S\ref{sec:minimosquadrados}). Guardam-se apenas os coeficientes; o campo em
+qualquer instante é reconstruído deles em uma linha. É o mesmo princípio dos
+modelos operacionais, e a diferença de custo é de três ordens de grandeza em
+armazenamento.
+
+\section{Energética}
+\label{sec:energia}
+
+Multiplicando \eqref{eq:lte_u}--\eqref{eq:lte_v} por $\rho H\vect{u}$,
+\eqref{eq:lte_cont} por $\rho g(1-\beta)\zeta$, e somando, obtém-se a equação de
+balanço
+\begin{equation}
+\pd{}{t}\underbrace{\left[\tfrac12\rho H|\vect{u}|^{2}
++\tfrac12\rho g(1-\beta)\zeta^{2}\right]}_{E}
++\nabla\cdot\underbrace{\left[\rho g(1-\beta)\,\zeta\,H\vect{u}\right]}_{\vect{F}\ \text{(fluxo)}}
+=\underbrace{\rho g H\vect{u}\cdot\nabla\zeta_{\text{eq}}}_{W\ \text{(trabalho da maré)}}
+-\underbrace{\rho\left(C_d|\vect{u}|^{3}+rH|\vect{u}|^{2}\right)}_{D\ \text{(dissipação)}} .
+\label{eq:energia}
+\end{equation}
+
+O fluxo é o trabalho da pressão perturbada $p'=\rho g\zeta$ contra o transporte
+$H\vect{u}$, e envolve $\zeta$ — não $\zeta'$. Escrevê-lo com $\zeta'$ seria
+contabilizar o trabalho astronômico duas vezes, uma vez no divergente e outra no
+termo $W$; a identidade deixaria de fechar. Com $\beta=0$ recupera-se a forma
+usual, $E=\tfrac12\rho H|\vect{u}|^{2}+\tfrac12\rho g\zeta^{2}$ e
+$\vect{F}=\rho g\zeta H\vect{u}$.
+
+Note que o termo de Coriolis \textbf{não aparece}: ele é perpendicular à
+velocidade e não realiza trabalho. Coriolis reorganiza a solução sem alimentá-la
+— exatamente o que se espera de uma força inercial.
+
+Em regime estatisticamente estacionário, $\langle W\rangle=\langle D\rangle$: a
+potência astronômica injetada iguala a dissipada. A observação global dá
+$\approx\SI{3.7}{\tera\watt}$ para todas as constituintes e
+$\approx\SI{2.4}{\tera\watt}$ só para M\textsubscript{2}
+\cite{egbert2000,munk1998}. A Eq.~\eqref{eq:energia} é o critério físico de
+calibração do Capítulo~\ref{cap:dissipacao}: o coeficiente de dissipação não é
+livre, ele precisa fechar esse orçamento.
+
+% =====================================================================
+\chapter{Auto-atração e carga (SAL)}
+\label{cap:sal}
+
+\section{O problema}
+
+A maré é uma redistribuição de massa da ordem de $10^{16}\,\si{\kilo\gram}$
+oscilando com período de \SI{12.42}{\hour} — a massa d'água acima do nível médio
+integrada sobre o hemisfério em preamar. Essa massa faz três coisas que a
+formulação do Capítulo~\ref{cap:lte} ignoraria se o termo $\beta$ não
+existisse:
+
+\begin{enumerate}
+\item \textbf{atrai gravitacionalmente} o resto do oceano (auto-atração);
+\item \textbf{deforma elasticamente} a crosta sobre a qual repousa (carga);
+\item a deformação da crosta \textbf{redistribui massa sólida}, que por sua vez
+  gera potencial adicional.
+\end{enumerate}
+
+Os três efeitos somam-se num termo que altera a equipotencial efetiva. Ignorá-lo
+introduz erro de até \SI{20}{\percent} na amplitude global — não é uma
+correção de segunda ordem.
+
+\section{Formulação exata}
+
+Expandindo a elevação da maré em harmônicos esféricos,
+$\zeta=\sum_{n,m}\zeta_{nm}Y_{nm}$, o potencial de auto-atração e carga
+correspondente, expresso como elevação equivalente, é
+\begin{equation}
+\boxed{\;
+\zeta_{\text{SAL}}=\sum_{n}\frac{3\rho_w}{(2n+1)\rho_\oplus}
+\left(1+k'_n-h'_n\right)\zeta_n,\;}
+\label{eq:sal_exato}
+\end{equation}
+onde $\zeta_n$ é a componente de grau $n$ do campo de maré, $\rho_w/\rho_\oplus
+=\num{1025}/\num{5515}=\num{0.186}$, e $k'_n,h'_n$ são os \emph{números de Love
+de carga} — negativos, ao contrário dos números de Love de maré do
+\S\ref{sec:love}, porque uma carga superficial \emph{afunda} a crosta:
+$k'_2\approx\num{-0.31}$, $h'_2\approx\num{-1.00}$.
+
+O termo de SAL entra na Eq.~\eqref{eq:desvio} como
+$\zeta'=\zeta-\zeta_{\text{eq}}-\zeta_{\text{SAL}}$.
+
+\section{A aproximação escalar e o seu erro}
+
+A Eq.~\eqref{eq:sal_exato} é uma \textbf{convolução global}: cada ponto do
+oceano depende de todos os outros, a cada passo de tempo. Calculá-la
+exigiria uma transformada de harmônicos esféricos por passo, o que multiplica
+o custo do modelo por um fator grande.
+
+A aproximação padrão, devida a Accad \& Pekeris \cite{accad1978} e avaliada em
+detalhe por Ray \cite{ray1998}, é escalar:
+\begin{equation}
+\zeta_{\text{SAL}}\approx\beta\,\zeta,
+\qquad\beta\in[\num{0.085},\,\num{0.12}],
+\end{equation}
+o que produz exatamente a Eq.~\eqref{eq:desvio}. O valor adotado aqui é
+$\beta=\num{0.09}$.
+
+\begin{caixa}[De onde vem o número \num{0.09}]
+Avalie o coeficiente de \eqref{eq:sal_exato} grau a grau:
+\begin{equation}
+\beta_n=\frac{3\rho_w}{(2n+1)\rho_\oplus}\left(1+k'_n-h'_n\right)
+\;\Longrightarrow\;
+\beta_2\approx\num{0.19},\quad
+\beta_{10}\approx\num{0.06},\quad
+\beta_n\xrightarrow[n\to\infty]{}0 .
+\end{equation}
+O escalar $\beta$ não é nenhum $\beta_n$: é uma \textbf{média ponderada pelo
+espectro espacial da própria maré}. Como a maré real tem energia distribuída
+por muitos graus — e não concentrada em $n=2$ como a forçante —, o valor
+efetivo cai para $\sim\!\num{0.09}$. Isso também explica por que a aproximação
+escalar erra mais em plataforma continental, onde o espectro da maré é
+deslocado para graus altos: ali o erro chega a \SI{20}{\percent}.
+\end{caixa}
+
+\begin{observacao}[Como o erro se manifesta]
+Por ser proporcional a $\zeta$, o termo escalar age como uma redução efetiva de
+$g$: $g\to g(1-\beta)$ na Eq.~\eqref{eq:lte_u}. Isso reduz a velocidade de fase
+em $\sqrt{1-\beta}\approx\num{0.954}$, ou seja, cerca de \SI{4.6}{\percent}, e
+desloca ligeiramente todos os modos ressonantes da bacia. É um efeito de
+\emph{fase} tanto quanto de amplitude — motivo pelo qual modelos operacionais
+que buscam \SI{1}{\centi\meter} de acurácia abandonaram a aproximação escalar.
+\end{observacao}
+
+% =====================================================================
+\chapter{Dissipação e orçamento energético}
+\label{cap:dissipacao}
+
+Num domínio global fechado, a dissipação não é um detalhe de acabamento: é o
+que fixa a amplitude. Sem ela, \eqref{eq:energia} garante crescimento
+indefinido enquanto houver trabalho da forçante. Este capítulo formula os dois
+mecanismos implementados e a metodologia de calibração do único parâmetro
+verdadeiramente livre do modelo.
+
+\section{Atrito de fundo quadrático}
+
+Na camada limite turbulenta junto ao fundo, a tensão de cisalhamento escala com
+o quadrado da velocidade — resultado clássico de G.~I. Taylor para o Mar da
+Irlanda \cite{taylor1919}:
+\begin{equation}
+\vect{\tau}_b=\rho\,C_d\,|\vect{u}|\,\vect{u},
+\qquad C_d\approx\num{2.5e-3}.
+\end{equation}
+Distribuída sobre a coluna d'água de espessura $H$, a desaceleração
+correspondente é $C_d|\vect{u}|\vect{u}/H$, que é o termo que aparece em
+\eqref{eq:lte_u}--\eqref{eq:lte_v}. A dependência $1/H$ concentra a dissipação
+onde a água é rasa: mares marginais e plataformas continentais respondem por
+cerca de \SI{70}{\percent} do total, embora ocupem uma fração pequena da área
+oceânica.
+
+A dissipação instantânea por unidade de área é $\rho C_d|\vect{u}|^{3}$: cúbica
+na velocidade. Isso torna o termo fortemente seletivo — dobrar a corrente
+octuplica a perda —, e é a razão pela qual ele estabiliza o modelo sem precisar
+de ajuste fino.
+
+\section{Conversão para maré interna}
+
+O segundo mecanismo é invisível a um modelo barotrópico. Quando a corrente de
+maré atravessa topografia rugosa num oceano estratificado, parte da energia é
+convertida em \textbf{ondas internas} que se propagam ao longo da picnoclina e
+acabam quebrando longe dali. Egbert \& Ray \cite{egbert2000}, usando altimetria
+do TOPEX/Poseidon, atribuíram $\approx\SI{1}{\tera\watt}$ — 25 a
+\SI{30}{\percent} do total — a esse sumidouro de oceano profundo, resultado que
+reescreveu o orçamento energético das marés.
+
+Um modelo de densidade constante não pode representar essas ondas
+(\S\ref{sec:aguasrasas}). Pode apenas \emph{parametrizar} a perda que elas
+representam. A forma usada aqui é um arrasto linear
+\begin{equation}
+\vect{\mathcal{F}}_{\text{int}}=-r\,\vect{u},
+\qquad r=\SI{1e-5}{\per\second},
+\label{eq:arrastolinear}
+\end{equation}
+uniforme. Parametrizações mais sofisticadas tornam $r$ função da rugosidade e
+da estratificação locais — a de Jayne \& St.~Laurent \cite{jayne2001} usa
+$r\propto\kappa h_t^{2}N_b/H$ com $h_t$ a altura característica da topografia e
+$N_b$ a frequência de Brunt--Väisälä junto ao fundo. Aqui, deliberadamente,
+mantém-se o escalar: com um único parâmetro, a calibração é auditável.
+
+\begin{caixa}[Por que \emph{linear} e não quadrático]
+A escolha da forma funcional não é arbitrária. O atrito de fundo é quadrático
+porque a camada limite é turbulenta. A conversão para maré interna, ao
+contrário, é um processo de \emph{radiação de ondas}: a energia irradiada é
+proporcional ao quadrado da amplitude da corrente, ou seja, a força equivalente
+é linear na velocidade. As duas formas funcionais codificam mecanismos físicos
+distintos, e usar a mesma para ambos apagaria a distinção.
+\end{caixa}
+
+\section{Calibração: metodologia}
+\label{sec:calibracao}
+
+O coeficiente $r$ \textbf{não é derivável do modelo}. É um parâmetro fechado
+contra observação, e a metodologia importa mais que o valor.
+
+O procedimento: varrer $r$, e para cada valor rodar o modelo completo a
+\ang{1.0} com forçante monocromática de M\textsubscript{2}, spin-up de
+\SI{10}{\day} e análise de \SI{2.5}{\day}, comparando a amplitude resultante
+com as constantes harmônicas de \textbf{oito marégrafos insulares} da NOAA
+(a justificativa da escolha das estações está em \S\ref{sec:porqueilhas}).
+
+\begin{table}[htbp]
+\centering
+\caption{Varredura de calibração do arrasto de maré interna. O mínimo é
+limpo e, decisivamente, o
+\emph{viés troca de sinal} exatamente nele.}
+\label{tab:atrito}
+\begin{tabular}{@{}rrrrr@{}}
+\toprule
+$r$ [\si{\per\second}] & RMS ilhas [cm] & viés [cm] & máx.\ global [m] & tempo [s] \\
+\midrule
+\num{0}      & \num{36.13} & $+\num{32.89}$ & \num{7.03} & 163 \\
+\num{3e-6}   & \num{18.58} & $+\num{16.00}$ & \num{4.69} & 172 \\
+\textbf{\num{1e-5}} & \textbf{\num{5.24}} & $+\num{0.13}$ & \num{2.91} & 169 \\
+\num{2e-5}   & \num{9.17}  & $-\num{8.04}$  & \num{2.10} & 167 \\
+\num{3e-5}   & \num{13.07} & $-\num{11.87}$ & \num{1.59} & 167 \\
+\num{5e-5}   & \num{17.36} & $-\num{15.60}$ & \num{0.95} & 167 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{caixa}[O que torna esta calibração defensável]
+Um mínimo de RMS, isoladamente, pode ser artefato de compensação entre erros de
+sinais opostos. O que valida a Tabela~\ref{tab:atrito} é a
+\textbf{coluna do viés}: ela é monótona e cruza zero exatamente onde o RMS é
+mínimo. Isso significa que em $r=\SI{1e-5}{\per\second}$ o modelo não está
+acertando na média por cancelamento — está centrado. Além disso, a amplitude
+máxima global decresce monotonicamente e passa por valores fisicamente
+plausíveis ($\sim\SI{3}{\meter}$) justamente ali, enquanto $r=0$ produz
+\SI{7}{\meter}, incompatível com qualquer observação.
+\end{caixa}
+
+\begin{alerta}[Um erro de calibração e como foi detectado]
+A primeira versão usava $r=\SI{2e-4}{\per\second}$, vinte vezes o valor final.
+O diagnóstico veio de uma checagem de escala de tempo, não de um ajuste: o
+tempo de decaimento associado é $\tau=1/r=\SI{1.4}{\hour}$, contra um período
+de M\textsubscript{2} de \SI{12.42}{\hour}. Um oscilador cujo transiente decai
+nove vezes mais rápido do que o período do forçamento está
+\emph{superamortecido} — a resposta não pode ressoar, e nenhuma bacia
+amplifica. Comparar a constante de tempo do amortecimento com o período do
+forçamento é um teste de sanidade que se faz antes de qualquer varredura.
+\end{alerta}
+
+\section{Orçamento global e o torque de maré}
+\label{sec:torque}
+
+A dissipação de maré não é apenas um termo de fechamento numérico: é um dos
+números mais bem determinados da geofísica, e conecta este modelo à mecânica
+celeste do Capítulo~\ref{cap:gravitacao}.
+
+\begin{center}
+\begin{tabular}{@{}lrl@{}}
+\toprule
+sumidouro & potência & referência \\
+\midrule
+total, todas as constituintes & \SI{3.7}{\tera\watt} & \cite{munk1998} \\
+M\textsubscript{2} apenas & \SI{2.4}{\tera\watt} & \cite{egbert2000} \\
+mares rasos e plataformas & $\sim\SI{2.6}{\tera\watt}$ & atrito de fundo \\
+oceano profundo (maré interna) & $\sim\SI{1.0}{\tera\watt}$ & \cite{egbert2000} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+O mecanismo de fundo é o seguinte. Por causa da dissipação, o bojo de maré não
+está alinhado com o eixo Terra--Lua: está adiantado de um pequeno ângulo
+(\S\ref{sec:deslocamento}). Um bojo desalinhado exerce \textbf{torque} sobre a
+Lua, e a reação frena a rotação da Terra. As consequências são medidas com
+precisão:
+
+\begin{itemize}
+\item a Lua afasta-se a \SI{3.8}{\centi\meter\per\ano} (telemetria laser
+  lunar);
+\item o dia alonga-se $\sim\SI{2.3}{\milli\second}$ por século;
+\item o momento angular perdido pela rotação terrestre reaparece
+  \emph{integralmente} na órbita lunar. A energia, essa não se conserva: a
+  energia rotacional perdida excede o ganho de energia orbital, e a diferença é
+  dissipada como calor — os \SI{3.7}{\tera\watt}.
+\end{itemize}
+
+\begin{caixa}[O fecho conceitual]
+Este é o ponto em que todo o documento se articula. O termo de arrasto do
+Capítulo~\ref{cap:referenciais} gerou a força; a expansão multipolar do
+Capítulo~\ref{cap:gravitacao} isolou o quadrupolo; a hidrodinâmica do
+Capítulo~\ref{cap:lte} produziu uma resposta \emph{atrasada}; e o atraso, por
+sua vez, realimenta a mecânica celeste que iniciou o problema — alterando a
+órbita da Lua e a rotação da Terra. A maré não é um efeito passivo da órbita:
+é um termo do próprio problema de dois corpos, e é ele que torna o sistema
+Terra--Lua dissipativo.
+\end{caixa}
+
+% =====================================================================
+\chapter{Coriolis, ondas de Kelvin e pontos anfidrômicos}
+\label{cap:anfidromos}
+
+Este capítulo trata do fenômeno que a teoria de equilíbrio é estruturalmente
+incapaz de produzir, e que constitui a validação qualitativa mais forte do
+modelo dinâmico.
+
+\section{Do problema de Taylor ao anfidromo}
+
+Considere um canal semi-infinito, girante, fechado numa extremidade — a
+idealização de uma bacia oceânica. Uma onda de Kelvin \eqref{eq:kelvin} incide
+propagando-se ao longo de uma margem; ao encontrar a parede, ela não pode
+simplesmente refletir como numa cuba sem rotação, porque a onda de Kelvin só
+existe com a costa à direita (hemisfério norte). A solução, obtida por Taylor
+em 1922 \cite{taylor1922}, é que a energia refletida sai como uma segunda onda
+de Kelvin \emph{ao longo da margem oposta}, mais um conjunto de modos de
+Poincaré evanescentes que ajustam o campo perto da parede.
+
+A superposição de duas ondas de Kelvin, propagando-se em sentidos opostos
+junto a margens opostas e decaindo transversalmente, produz um campo cuja
+amplitude se anula em pontos isolados do interior do canal. Em torno desses
+pontos, a fase gira. São os \textbf{pontos anfidrômicos}.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[scale=0.95,>=Latex]
+  \fill[azulclaro] (0,0) rectangle (8,5);
+  \draw[very thick,azulforte] (0,0) -- (8,0);
+  \draw[very thick,azulforte] (0,5) -- (8,5);
+  \draw[very thick,azulforte] (8,0) -- (8,5);
+  \node[below=2pt,font=\small] at (4,0) {costa};
+  \node[above=2pt,font=\small] at (4,5) {costa};
+  \node[right=3pt,font=\small] at (8,2.5) {parede};
+  % linhas cotidais radiais, com folga vertical em 270 graus
+  \foreach \a in {15,45,...,345}{
+    \draw[azulforte,thin] (5.4,2.5) -- ++(\a:1.5);
+  }
+  \fill[laranja] (5.4,2.5) circle (3pt);
+  \draw[gray!70,thin] (5.4,1.02) -- (5.4,0.62);
+  \node[below=-1pt,font=\small] at (5.4,0.68) {anfidromo};
+  % sentido de rotacao
+  \draw[->,laranja,very thick] (5.4,2.5)+(-45:1.95) arc (-45:45:1.95);
+  % ondas de Kelvin
+  \draw[->,verde,very thick] (0.4,0.45) -- (2.8,0.45);
+  \node[above=1pt,font=\scriptsize,verde] at (1.6,0.5) {Kelvin incidente};
+  \draw[->,verde,very thick] (2.8,4.55) -- (0.4,4.55);
+  \node[below=1pt,font=\scriptsize,verde] at (1.6,4.5) {Kelvin refletida};
+\end{tikzpicture}
+\caption{Problema de Taylor: a reflexão de uma onda de Kelvin no extremo
+fechado de um canal girante produz um ponto anfidrômico, em torno do qual as
+linhas cotidais (de igual fase) convergem em leque. A amplitude é nula no
+ponto e cresce radialmente; a fase percorre \ang{360} ao circundá-lo. A seta
+em laranja marca o sentido de propagação da fase, anti-horário no hemisfério
+norte.}
+\label{fig:taylor}
+\end{figure}
+
+\section{O anfidromo como objeto topológico}
+\label{sec:topologia}
+
+Este é o ponto de vista que torna a detecção rigorosa. Escreva a resposta
+monocromática como a parte real de um campo complexo:
+\begin{equation}
+\zeta(\vect{x},t)=\mathrm{Re}\left\{Z(\vect{x})\,e^{\ii\sigma t}\right\}
+=A\cos(\sigma t-G),
+\qquad Z=A(\vect{x})\,e^{-\ii G(\vect{x})},
+\label{eq:complexo}
+\end{equation}
+com $A\ge 0$ a amplitude e $G$ a fase de Greenwich — o \emph{atraso} com que a
+preamar chega, na mesma convenção de \eqref{eq:previsao} e de
+\S\ref{sec:minimosquadrados}, onde $G=\atantwo(b,a)$. A convenção importa: com
+$\zeta=A\cos(\sigma t+G)$ o sinal do número de voltas \eqref{eq:winding}
+inverteria, e com ele a leitura de sentido de rotação da
+Tabela~\ref{tab:rotacao}. Um ponto anfidrômico é
+simplesmente um \textbf{zero de $Z$}.
+
+Como $Z:\mathbb{R}^{2}\to\mathbb{C}$ é uma aplicação de duas variáveis reais em
+duas, seus zeros são genericamente \emph{isolados} — anular simultaneamente
+$\mathrm{Re}\,Z$ e $\mathrm{Im}\,Z$ são duas condições em duas incógnitas. E a
+cada zero isolado associa-se um \textbf{índice topológico}, o número de voltas
+da fase:
+\begin{equation}
+\boxed{\;
+w=\frac{1}{2\pi}\oint_{\mathcal{C}}\nabla G\cdot\dd\vect{l}\;\in\;\mathbb{Z},\;}
+\label{eq:winding}
+\end{equation}
+para qualquer curva fechada $\mathcal{C}$ que circunde o ponto e não contenha
+outros zeros. Genericamente $w=\pm 1$, e o \textbf{sinal dá o sentido de
+rotação} da onda em torno do ponto.
+
+\begin{caixa}[Por que anfidromos são robustos]
+O índice \eqref{eq:winding} é um invariante topológico: perturbe a batimetria,
+o atrito ou a forçante continuamente, e $w$ não pode mudar sem que o zero
+colida com outro de índice oposto e ambos se aniquilem — ou que ele saia pela
+fronteira do domínio, que é como surgem os anfidromos \emph{degenerados}, com
+centro em terra (o do Mar do Norte junto à costa da Noruega é o exemplo
+padrão). Isso explica um fato
+observacional notável — os anfidromos oceânicos estão nos mesmos lugares em
+todos os modelos e em todas as épocas, apesar de a solução detalhada ser
+sensível a tudo. Eles não são ``pontos onde a maré é pequena''; são
+\textbf{defeitos topológicos} do campo de fase, e é por isso que a detecção
+correta precisa ser topológica.
+\end{caixa}
+
+\section{Algoritmo de detecção}
+
+A tradução direta de \eqref{eq:winding} para a grade discreta: percorra o anel
+dos oito vizinhos de cada célula em ordem angular e some as diferenças de fase,
+cada uma reduzida ao intervalo $(-\ang{180},\ang{180}]$:
+\begin{equation}
+W_{ji}=\sum_{k=1}^{8}
+\Big[\big(G_{k+1}-G_{k}+\ang{180}\big)\bmod\ang{360}-\ang{180}\Big].
+\end{equation}
+O total vale $\pm\ang{360}$ num anfidromo verdadeiro e \ang{0} em qualquer
+outro lugar. Detecções vizinhas são fundidas por proximidade, com o
+representante do grupo sendo a célula de menor amplitude.
+
+A tradução direta para código está no Apêndice~\ref{ap:python}.
+
+\begin{alerta}[O critério ingênuo e por que ele falha]
+A primeira implementação detectava anfidromos por ``amplitude abaixo de um
+limiar'' e encontrava \textbf{86} pontos numa rodada a \ang{1.0} — muitos deles
+em baías fechadas e em ruído costeiro, onde a maré é pequena por razões que
+nada têm de anfidrômicas. Com o critério \eqref{eq:winding} mais o
+agrupamento por proximidade, o número cai para \textbf{24}, compatível com as
+cartas cotidais publicadas. A diferença entre \num{86} e \num{24} não é ajuste
+de limiar: é a diferença entre uma definição operacional imprecisa e a
+definição correta.
+\end{alerta}
+
+\section{O sentido de rotação emerge de $f$}
+\label{sec:rotacao}
+
+A onda de Kelvin costeira circula com a costa à direita no hemisfério norte, o
+que faz os sistemas anfidrômicos girarem majoritariamente no sentido
+\textbf{anti-horário} ao norte e \textbf{horário} ao sul. Nada disso está
+codificado; sai do termo $f=2\Omega\sin\phi$.
+
+\begin{table}[htbp]
+\centering
+\caption{Sentido de rotação medido na rodada de produção a \ang{1.0}, que
+encontra 24 pontos anfidrômicos.}
+\label{tab:rotacao}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+hemisfério & anfidromos & no sentido previsto \\
+\midrule
+norte (anti-horário) & 8 & \SI{75}{\percent} \\
+sul (horário) & 13 & \SI{85}{\percent} \\
+\midrule
+equatoriais ($|\phi|<\ang{5}$) & 3 & não classificados \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent
+Os três pontos dentro de \ang{5} do equador ficam de fora da estatística
+porque ali $f\to 0$: não há sentido preferencial a prever, e incluí-los
+contaminaria o teste com casos em que a hipótese não se aplica.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{carta_cotidal_M2.png}
+\caption{Carta cotidal de M\textsubscript{2} produzida pelo modelo a \ang{1.0}.
+Cor: amplitude (escala sequencial de um só tom, porque amplitude é magnitude e
+não polaridade). Linhas: fase constante — cada uma é uma frente de onda. Os
+pontos onde todas as linhas convergem e a amplitude vai a zero são os
+anfidromos. A carta reproduz os sistemas reais conhecidos: Atlântico Sul em
+$\sim(\ang{-25},\ang{-12})$, Atlântico Norte em $\sim(\ang{50},\ang{-40})$,
+Índico em $\sim(\ang{0},\ang{62})$.}
+\label{fig:cotidal}
+\end{figure}
+
+\section{No anfidromo a maré não sobe, mas a água corre}
+
+Uma verificação que separa compreensão de repetição. No ponto anfidrômico a
+elevação é nula por construção; a \emph{corrente}, não:
+
+\begin{center}
+\begin{tabular}{@{}lr@{}}
+\toprule
+grandeza no anfidromo & fração da mediana global \\
+\midrule
+elevação & \SI{6.4}{\percent} \\
+corrente & \SI{102}{\percent} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Como $Z=0$ no anfidromo, ali $\zeta\equiv 0$ em \emph{todo} instante, e com ela
+o fluxo de energia $\rho g\zeta H\vect{u}$ de \eqref{eq:energia}: a energia
+\textbf{contorna} o ponto, não o atravessa — nas cartas de fluxo de maré os
+vetores circulam em torno do anfidromo com magnitude indo a zero nele. O que
+não se anula é a \textbf{corrente}: o transporte de volume $H\vect{u}$ passa
+normalmente. Um anfidromo é um ponto de maré nula, não de água parada.
+
+\begin{alerta}[Uma formulação que se erra com facilidade]
+É tentador resumir o parágrafo acima dizendo que ``elevação e corrente estão em
+quadratura''. Isso vale para a \emph{fase}, não para a \emph{amplitude}.
+Espacialmente as duas amplitudes são bem correlacionadas
+($\rho\approx\num{0.79}$), porque plataforma rasa tem maré grande \emph{e}
+corrente grande. A afirmação que a física sustenta é pontual — sobre o
+anfidromo —, e não uma anticorrelação global entre os dois campos.
+\end{alerta}
+
+% =====================================================================
+\chapter{Análise harmônica}
+\label{cap:harmonica}
+
+Há dois caminhos para prever maré, e eles são filosoficamente distintos:
+\textbf{simular} a hidrodinâmica, ou \textbf{decompor} o sinal em constituintes
+de frequência astronomicamente determinada. O segundo caminho é o que produz as
+tábuas de maré do mundo inteiro, e é um instrumento tão essencial quanto as
+próprias Equações de Maré de Laplace — porque é ele que torna a simulação
+\emph{comparável} com a observação.
+
+\section{A ideia de Kelvin e Darwin}
+
+A sacada é a seguinte: as \emph{frequências} da maré saem da mecânica celeste
+com precisão arbitrária, ao passo que amplitude e fase dependem da
+hidrodinâmica local, impossível de calcular no século XIX. Logo, fixem-se as
+frequências pela astronomia e \emph{meça-se} o resto:
+\begin{equation}
+\zeta(t)=Z_0+\sum_{i}f_i\,H_i\,\cos\!\left(V_{0i}+u_i-g_i\right),
+\label{eq:previsao}
+\end{equation}
+onde $H_i$ e $g_i$ (a \emph{fase de Greenwich}) são as constantes harmônicas
+medidas naquele porto, $V_{0i}$ é o argumento astronômico e $f_i,u_i$ são as
+correções nodais. A Eq.~\eqref{eq:previsao} é literalmente o algoritmo de uma
+tábua de maré.
+
+\section{Os seis argumentos fundamentais e os números de Doodson}
+
+Toda constituinte é uma combinação com coeficientes \emph{inteiros} de seis
+frequências fundamentais:
+
+\begin{table}[htbp]
+\centering
+\caption{Os seis argumentos fundamentais de Doodson, em graus por hora solar
+média.}
+\label{tab:doodson}
+\begin{tabular}{@{}cllr@{}}
+\toprule
+símbolo & significado & período & \si{\degree\per\hour} \\
+\midrule
+$\tau$ & tempo lunar médio & \SI{24.84}{\hour} & \num{14.4920521} \\
+$s$ & longitude média da Lua & \SI{27.32}{\day} & \num{0.5490165} \\
+$h$ & longitude média do Sol & \SI{365.24}{\day} & \num{0.0410686} \\
+$p$ & perigeu lunar & \SI{8.85}{\anos} & \num{0.0046418} \\
+$N'$ & nó lunar (negativo) & \SI{18.61}{\anos} & \num{0.0022064} \\
+$p_s$ & perigeu solar & \SI{20940}{\anos} & \num{0.0000020} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A velocidade angular de uma constituinte é o produto escalar do seu vetor de
+Doodson $(n_\tau,n_s,n_h,n_p,n_{N},n_{p_s})$ com a coluna da direita:
+\begin{equation}
+\sigma_c=\sum_{k}n_k\,\omega_k .
+\label{eq:velocidade}
+\end{equation}
+
+Assim, M\textsubscript{2} é $(2,0,0,0,0,0)$, logo
+$2\times\num{14.4920521}=\SI{28.9841042}{\degree\per\hour}$, ou seja
+\SI{12.4206}{\hour} de período — exatamente o valor que a simulação obtém por
+FFT sem jamais tê-lo codificado. E o primeiro número de Doodson $n_\tau$
+\emph{é} a espécie de \S\ref{sec:especies}: 0 para longo período, 1 para
+diurna, 2 para semidiurna.
+
+A relação de Doodson que fecha o sistema é
+\begin{equation}
+\tau=T+h-s,\qquad T=15\times(\text{hora UT})+\ang{180},
+\end{equation}
+com $T$ o ângulo horário médio do \emph{Sol}. É essa subtração que dá o ``2''
+de M\textsubscript{2} referido ao dia \emph{lunar}, e não ao solar.
+
+\begin{table}[htbp]
+\centering
+\caption{As oito constituintes principais, contra as quais a acurácia dos
+modelos globais é medida \cite{stammer2014}. Amplitudes de equilíbrio do
+desenvolvimento de Cartwright--Tayler--Edden.}
+\label{tab:constituintes}
+\begin{tabular}{@{}llrrl@{}}
+\toprule
+nome & Doodson & \si{\degree\per\hour} & $A$ [m] & descrição \\
+\midrule
+M\textsubscript{2} & $(2,0,0,0,0,0)$ & \num{28.9841} & \num{0.2423} & principal lunar semidiurna \\
+S\textsubscript{2} & $(2,2,-2,0,0,0)$ & \num{30.0000} & \num{0.1128} & principal solar semidiurna \\
+N\textsubscript{2} & $(2,-1,0,1,0,0)$ & \num{28.4397} & \num{0.0464} & elíptica lunar maior \\
+K\textsubscript{2} & $(2,2,0,0,0,0)$ & \num{30.0821} & \num{0.0307} & declinacional luni-solar \\
+K\textsubscript{1} & $(1,1,0,0,0,0)$ & \num{15.0411} & \num{0.1416} & declinacional luni-solar \\
+O\textsubscript{1} & $(1,-1,0,0,0,0)$ & \num{13.9430} & \num{0.1005} & principal lunar diurna \\
+P\textsubscript{1} & $(1,1,-2,0,0,0)$ & \num{14.9589} & \num{0.0468} & principal solar diurna \\
+Q\textsubscript{1} & $(1,-2,0,1,0,0)$ & \num{13.3987} & \num{0.0193} & elíptica lunar diurna \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Correções de fase por espécie}
+\label{sec:correcaofase}
+
+O argumento astronômico completo de uma constituinte é
+\begin{equation}
+V_0=\sum_k n_k\,\theta_k+\chi_c ,
+\end{equation}
+onde $\chi_c$ é uma \textbf{correção de fase constante} que depende apenas da
+espécie. Ela decorre da convenção com que o argumento de Doodson é tabulado: a
+origem de fase adotada para cada espécie no desenvolvimento harmônico não
+coincide com a de \eqref{eq:especies}, e o descompasso é de \ang{0}, \ang{90} e
+\ang{180} para as espécies 2, 1 e 0, respectivamente. O sinal, dentro da espécie
+1, acompanha o sinal do coeficiente da constituinte no desenvolvimento.
+
+\begin{center}
+\small
+\begin{tabular}{@{}llp{8.2cm}@{}}
+\toprule
+espécie & $\chi_c$ & origem \\
+\midrule
+semidiurnas & \ang{0} & a origem de fase do argumento coincide com a de \eqref{eq:especies} \\
+diurnas & $\pm\ang{90}$ & origem deslocada de \ang{90} para a espécie 1; K\textsubscript{1} leva sinal oposto ao de O\textsubscript{1}, P\textsubscript{1} e Q\textsubscript{1} \\
+longo período & \ang{180} & origem deslocada de \ang{180}, coerente com $\tfrac12(3\sin^{2}\phi-1)<0$ em baixa latitude \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{alerta}[O erro de \ang{180} e o experimento que o revelou]
+Na primeira implementação todas as correções diurnas estavam com o
+\textbf{sinal invertido}. O erro é invisível numa inspeção de código — a tabela
+parecia razoável — e foi encontrado por um experimento independente: ajustar as
+\emph{próprias previsões oficiais da NOAA} com os nossos argumentos
+astronômicos e verificar se recuperávamos as constantes que a NOAA publica.
+
+O resultado foi diagnóstico: as semidiurnas saíram exatas
+($\Delta g_{M2}=\ang{0.0}$) enquanto \emph{todas} as diurnas erravam por
+exatamente $\pm\ang{180}$. Um erro que atinge uma espécie inteira e é um
+múltiplo exato de $\pi$ não é ruído de ajuste — é sinal trocado. Corrigido o
+sinal, a correlação da reconstrução subiu de \num{0.40} para acima de
+\num{0.99}.
+
+A lição metodológica: \textbf{teste contra uma fonte externa que use a mesma
+convenção}, e prefira métricas que revelem estrutura (aqui, o erro por espécie)
+a métricas agregadas (um RMS global teria apenas ficado ``ruim'').
+\end{alerta}
+
+\section{Fatores nodais}
+
+A órbita lunar precessa com período de \SI{18.61}{\anos} (\S\ref{sec:multipolo}),
+o que modula amplitude e fase de cada constituinte. Em vez de introduzir
+constituintes separadas para cada linha espectral vizinha, a prática padrão —
+devida a Schureman — é escrever
+\begin{equation}
+H_i\to f_i(N)\,H_i,\qquad g_i\to g_i-u_i(N),
+\end{equation}
+com $f$ e $u$ funções lentas da longitude do nó $N$. Alguns exemplos:
+\begin{align}
+f_{M2}&=1-\num{0.037}\cos N, & u_{M2}&=-\ang{2.14}\sin N,\\
+f_{K1}&=\num{1.006}+\num{0.115}\cos N-\num{0.009}\cos 2N,
+& u_{K1}&=-\ang{8.86}\sin N+\ang{0.68}\sin 2N,\\
+f_{O1}&=\num{1.009}+\num{0.187}\cos N-\num{0.015}\cos 2N,
+& u_{O1}&=\ang{10.80}\sin N-\ang{1.34}\sin 2N .
+\end{align}
+
+A modulação é de $\pm\SI{3.7}{\percent}$ para M\textsubscript{2} mas
+$\pm\SI{18}{\percent}$ para O\textsubscript{1}: as diurnas são muito mais
+sensíveis ao ciclo nodal, porque dependem de $\sin 2\delta$
+(\S\ref{sec:especies}) e a declinação máxima da Lua oscila entre \ang{18.3} e
+\ang{28.6}. Sem essa correção, uma análise harmônica de um ano produz
+constantes que não valem para o ano seguinte.
+
+As constituintes de águas rasas herdam o fator do harmônico gerador elevado à
+potência apropriada: $f_{M4}=f_{M2}^{2}$, $f_{M6}=f_{M2}^{3}$,
+$u_{M4}=2u_{M2}$.
+
+\section{Critério de Rayleigh e condicionamento}
+\label{sec:rayleigh}
+
+Quanto tempo de registro é preciso para separar duas constituintes? O
+\textbf{critério de Rayleigh} exige ao menos um ciclo completo do batimento:
+\begin{equation}
+T_{\text{reg}}\;\ge\;\frac{2\pi}{|\sigma_1-\sigma_2|} .
+\label{eq:rayleigh}
+\end{equation}
+
+\begin{center}
+\begin{tabular}{@{}llr@{}}
+\toprule
+par & $\Delta\sigma$ [\si{\degree\per\hour}] & registro mínimo \\
+\midrule
+M\textsubscript{2}, S\textsubscript{2} & \num{1.0159} & \SI{14.77}{\day} \\
+K\textsubscript{1}, O\textsubscript{1} & \num{1.0981} & \SI{13.66}{\day} \\
+M\textsubscript{2}, N\textsubscript{2} & \num{0.5444} & \SI{27.55}{\day} \\
+K\textsubscript{1}, P\textsubscript{1} & \num{0.0821} & \textbf{\SI{182.6}{\day}} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+O par K\textsubscript{1}/P\textsubscript{1} exige meio ano — motivo pelo qual
+registros curtos inferem P\textsubscript{1} a partir de K\textsubscript{1} por
+razão de amplitude teórica, em vez de ajustá-la.
+
+\begin{caixa}[A generalização quantitativa: número de condição]
+O critério \eqref{eq:rayleigh} é binário e, estritamente, não é uma barreira
+absoluta: com dados sem ruído, mínimos quadrados separam frequências
+arbitrariamente próximas. O que \eqref{eq:rayleigh} realmente marca é a
+transição de regime do \textbf{condicionamento} da matriz normal
+$\vect{N}=\vect{X}^{\!\top}\vect{X}$ de \S\ref{sec:minimosquadrados}.
+
+Medindo $\mathrm{cond}(\vect{N})$ em função do comprimento do registro para o
+par K\textsubscript{1}/P\textsubscript{1}, encontra-se decrescimento monótono
+até atingir \num{1.00} — a duas casas decimais — no período de Rayleigh de
+\SI{183}{\day}, onde as colunas de projeto se tornam ortogonais a menos de um
+resíduo $\ordem{\Delta\sigma/(\sigma_1+\sigma_2)}$, da ordem de
+$\num{e-3}$. Abaixo disso o
+condicionamento explode, e o efeito prático é que a variância dos coeficientes
+estimados, $\sigma^{2}\vect{N}^{-1}$, cresce sem limite. A verificação honesta
+do critério mede essa monotonicidade e o erro sobre realizações ruidosas, em vez
+de tratar \eqref{eq:rayleigh} como dogma.
+\end{caixa}
+
+\section{Mínimos quadrados e acumulação em tempo de integração}
+\label{sec:minimosquadrados}
+
+Com as frequências fixadas, \eqref{eq:previsao} é \textbf{linear} nos
+parâmetros. Escrevendo cada constituinte como
+$a_i\cos\sigma_i t+b_i\sin\sigma_i t$, a solução de mínimos quadrados é
+\begin{equation}
+\vect{N}\vect{c}=\vect{y},\qquad
+N_{kl}=\sum_{t}\Psi_k(t)\Psi_l(t),\qquad
+y_k=\sum_{t}\Psi_k(t)\,\zeta(t),
+\label{eq:normal}
+\end{equation}
+com $\Psi=(\cos\sigma_1 t,\sin\sigma_1 t,\dots)$. Amplitude e fase saem de
+$A=\sqrt{a^{2}+b^{2}}$ e $G=\atantwo(b,a)$.
+
+O ponto de implementação decisivo é que \eqref{eq:normal} envolve apenas
+\textbf{somas}: nada exige que a série temporal seja armazenada. O modelo
+acumula $\vect{N}$ e $\vect{y}$ durante a integração e resolve o sistema no
+fim, para elevação \emph{e} para as duas componentes de corrente. Como
+$\vect{N}$ é a mesma para todas as células da grade, uma única fatoração
+resolve os \num{65000} pontos de uma vez.
+
+
+
+\section{Constituintes de águas rasas: geradas, não forçadas}
+
+M\textsubscript{4}, M\textsubscript{6}, MS\textsubscript{4} e companhia têm
+amplitude de equilíbrio \textbf{exatamente zero}: não existem no potencial
+astronômico. Elas nascem das não-linearidades — atrito quadrático, o termo
+$(H+\zeta)$ da continuidade, advecção — em mares rasos, onde
+$\mathrm{Ro}\sim 1$ (\S\ref{sec:escala}).
+
+Essa é uma distinção conceitual de primeira importância, e um teste
+discriminante entre modelos: a teoria de equilíbrio \textbf{jamais} poderia
+produzi-las, porque não tem não-linearidade alguma.
+
+Um modelo dinâmico pode produzi-las — mas só se conservar as não-linearidades
+que as geram. Vale registrar que a formulação de \S\ref{sec:aguasrasas} não as
+conserva: a advecção foi descartada por $\mathrm{Ro}\ll 1$ e a continuidade foi
+linearizada com $H$ em lugar de $H+\zeta$. Sobra apenas o atrito quadrático de
+fundo, que gera sobremarés fracamente. Produzir M\textsubscript{4} e
+M\textsubscript{6} com realismo exigiria \emph{reintroduzir} os termos
+não-lineares \emph{e} resolver os estuários onde elas vivem — duas condições, e
+não uma.
+
+% =====================================================================
+\chapter{Métodos numéricos}
+\label{cap:numerica}
+
+A formulação dos capítulos anteriores só vira resultado através de escolhas de
+discretização, e várias delas têm conteúdo físico. Este capítulo trata das que
+importam.
+
+\section{Grade C de Arakawa}
+\label{sec:gradec}
+
+As variáveis não ficam todas no mesmo ponto. Na \textbf{grade C} de Arakawa
+\cite{arakawa1977}, a elevação $\zeta$ mora no centro da célula, $u$ na face
+leste e $v$ na face norte:
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[scale=1.5]
+  \draw[gray!50] (0,0) grid (3,2);
+  \foreach \x in {0.5,1.5,2.5}{\foreach \y in {0.5,1.5}{
+    \fill[azulforte] (\x,\y) circle (1.6pt);
+    \node[font=\scriptsize,azulforte,above right=-1pt] at (\x,\y) {$\zeta$};}}
+  \foreach \x in {0,1,2,3}{\foreach \y in {0.5,1.5}{
+    \draw[laranja,thick,-Latex] (\x,\y) -- ++(0.3,0);
+    \node[font=\scriptsize,laranja,below=1pt] at (\x,\y) {$u$};}}
+  \foreach \x in {0.5,1.5,2.5}{\foreach \y in {0,1,2}{
+    \draw[verde,thick,-Latex] (\x,\y) -- ++(0,0.3);
+    \node[font=\scriptsize,verde,right=1pt] at (\x,\y) {$v$};}}
+\end{tikzpicture}
+\caption{Arranjo da grade C. O gradiente de pressão e a divergência do fluxo são
+calculados com diferenças de \emph{um} intervalo entre pontos adjacentes, sem
+média intermediária. Só o termo de Coriolis exige interpolação — de quatro
+vizinhos.}
+\label{fig:gradec}
+\end{figure}
+
+A justificativa é a representação das ondas de gravidade-inércia. A grade C
+representa corretamente a dispersão \eqref{eq:poincare} quando
+$\Delta x\lesssim L_R$, e é a melhor escolha nesse regime. Aqui
+$\Delta x=\SI{110}{\kilo\meter}$ contra $L_R\approx\SI{1900}{\kilo\meter}$
+(\S\ref{sec:ondas}): estamos com folga de mais de uma ordem de grandeza no
+regime favorável.
+
+O preço é que o termo de Coriolis precisa de $v$ nos pontos $u$ e vice-versa,
+obtidos pela média de quatro vizinhos. A alternativa (grade B) inverte o
+compromisso: Coriolis fica exato, o gradiente de pressão passa a exigir média, e
+a dispersão degrada em $\Delta x>L_R$.
+
+\section{Avanço forward-backward}
+\label{sec:fb}
+
+O esquema temporal é o \emph{forward-backward}: a continuidade avança primeiro,
+usando as velocidades \textbf{antigas}; em seguida o momento avança usando a
+elevação \textbf{recém-calculada}.
+\begin{align}
+\zeta^{n+1}&=\zeta^{n}-\Delta t\,\nabla\!\cdot\!(H\vect{u}^{n}),\\
+u^{n+1}&=u^{n}+\Delta t\left[\;\;f\,v^{n}
+  -\frac{g}{a\cos\phi}\pd{\zeta'^{\,n+1}}{\lambda}+\dots\right],\\
+v^{n+1}&=v^{n}+\Delta t\left[-f\,u^{n+1}
+  -\frac{g}{a}\pd{\zeta'^{\,n+1}}{\phi}+\dots\right].
+\end{align}
+Repare no $u^{n+1}$ dentro do Coriolis de $v$: o mesmo princípio de usar sempre
+o valor mais recente disponível, aplicado uma segunda vez dentro do passo de
+momento.
+
+As propriedades que motivam a escolha:
+
+\begin{itemize}
+\item \textbf{estabilidade neutra} para ondas de gravidade: o fator de
+  amplificação tem módulo exatamente 1 dentro do limite CFL, sem amortecimento
+  numérico artificial. Isso importa num problema em que a dissipação física é
+  justamente o que se quer calibrar (\S\ref{sec:calibracao});
+\item \textbf{segunda ordem efetiva} em $\Delta t$ para o modo de gravidade,
+  ao custo de \emph{uma} avaliação por passo;
+\item \textbf{sem modo computacional}: ao contrário do leapfrog, não há solução
+  espúria alternante que exija filtro de Asselin — filtro que, por sua vez,
+  introduziria amortecimento espúrio.
+\end{itemize}
+
+\section{Atrito quadrático semi-implícito}
+
+O termo $C_d|\vect{u}|u/H$ tratado explicitamente instabiliza-se quando
+$\Delta t\,C_d|\vect{u}|/H>1$, o que ocorre em células rasas com corrente forte
+— exatamente onde a dissipação é maior. A solução usada é semi-implícita:
+avalia-se o módulo $|\vect{u}|$ no tempo antigo e a velocidade linear no novo,
+\begin{equation}
+u^{n+1}=\frac{u^{n}+\Delta t\,\mathcal{R}}
+{1+\Delta t\left(\dfrac{C_d|\vect{u}^{n}|}{H}+r\right)},
+\label{eq:semiimplicito}
+\end{equation}
+com $\mathcal{R}$ os demais termos. O denominador é sempre $>1$, de modo que o
+esquema é \textbf{incondicionalmente dissipativo e limitado}: nenhum valor de
+$\Delta t$ pode fazer a velocidade trocar de sinal por excesso de atrito, que é
+o modo de falha do tratamento explícito.
+
+\section{Condição CFL e o limite polar}
+\label{sec:cfl}
+
+Para ondas de gravidade em duas dimensões, a condição de Courant é
+\begin{equation}
+\Delta t\;\le\;\frac{\min(\Delta x,\Delta y)}{\sqrt{2\,gH}} .
+\end{equation}
+Adota-se $\Delta t=s\cdot\min(\Delta x,\Delta y)/\sqrt{gH}$ com fator de
+segurança $s\in[\num{0.40},\num{0.45}]$, abaixo do limite estrito
+$1/\sqrt2=\num{0.707}$.
+
+Como $\Delta x=a\Delta\lambda\cos\phi$, a célula encolhe com a latitude e o
+passo estável junto. Este é o motivo do corte em \ang{86}
+(\S\ref{sec:batimetria}): na última linha de células molhadas
+$\Delta x\approx\SI{8.7}{\kilo\meter}$ e
+$\Delta t\approx\SI{19}{\second}$, contra \SI{110}{\kilo\meter} e
+$\sim\SI{250}{\second}$ no equador. \textbf{Uma única célula polar governa o
+custo da rodada inteira} — a observação prática que justifica a decisão de
+projeto.
+
+\begin{observacao}[O caminho não tomado]
+Modelos globais de alta resolução resolvem o problema polar de outras formas:
+grade tripolar (com os polos numéricos deslocados para cima de continentes),
+malha não estruturada, ou filtragem zonal em alta latitude. Todas são
+preferíveis; nenhuma é barata. Cortar em \ang{86} é a solução aceitável para um
+modelo desta escala, \emph{desde que declarada}.
+\end{observacao}
+
+\section{Integradores: a pergunta sobre RK4, respondida por medida}
+\label{sec:integradores}
+
+Uma pergunta que se impõe ao montar o modelo é se Runge--Kutta de quarta
+ordem dá conta, ou se outro método seria mais adequado. A resposta correta é
+que \textbf{há dois subsistemas com exigências opostas}, e ela difere para
+cada um.
+
+\subsection{Resposta da bacia: RK4 é a escolha certa}
+
+A Eq.~\eqref{eq:oscilador} tem amortecimento $2\gamma\dot h$ que
+\textbf{depende da velocidade}. O sistema deixa de ser hamiltoniano, de modo que
+a análise de \S\ref{sec:simpletica} não se aplica: não há estrutura simplética a
+preservar, e os métodos que a preservam perdem sua vantagem — além de deixarem
+de ser explícitos, já que a força passa a depender da incógnita que estão
+avançando. O sistema não é rígido
+($\Delta t=\SI{60}{\second}$ contra período de \SI{12.42}{\hour} dá
+\num{745} passos por ciclo) e há forçamento externo dependente do tempo, que o
+RK4 avalia em $t+\Delta t/2$. É o caso de livro para RK4.
+
+\begin{alerta}[A armadilha do forçamento pré-amostrado]
+A quarta ordem do RK4 vem justamente das avaliações em $t+\Delta t/2$. Se
+$h_{\text{eq}}$ for passada como \emph{array} amostrado apenas nos instantes
+$t$, em vez de como função, o método cai \textbf{silenciosamente} para segunda
+ordem: nada falha, nada avisa, e o erro simplesmente fica maior do que deveria.
+A implementação precisa, portanto, receber o forçamento como \emph{função do
+tempo}, e não como vetor pré-amostrado — e a ordem observada deve ser medida, e
+não suposta.
+\end{alerta}
+
+\subsection{Órbitas: RK4 é o pior dos quatro}
+
+Aqui vale \S\ref{sec:simpletica}: o RK4 não é simplético, seu erro de energia
+tem componente secular, e a Eq.~\eqref{eq:amplificacao3x} amplifica por três
+qualquer desvio em $D$.
+
+\begin{table}[htbp]
+\centering
+\caption{Órbita lunar integrada por \SI{10}{\anos}, contra o Kepler analítico.
+``Erro em $h$'' aplica
+\eqref{eq:amplificacao3x} ao erro de distância.}
+\label{tab:integradores}
+\footnotesize
+\begin{tabular}{@{}lrrrrrrl@{}}
+\toprule
+método & $\Delta t$ [s] & $|\delta E/E|$ & erro pos.\ [m] & erro em $h$ [\%]
+& aval./passo & tempo [s] & secular? \\
+\midrule
+RK4             & 600  & \num{3.65e-13} & \num{1.37e-1} & \num{1.26e-9} & 4 & \num{9.6} & \textbf{sim} \\
+Velocity-Verlet & 600  & \num{1.15e-7}  & \num{3.22e5}  & \num{4.87e-3} & 1 & \num{3.4} & não \\
+Yoshida-4       & 600  & \num{3.86e-13} & \num{2.00e0}  & \num{1.22e-8} & 3 & \num{7.7} & não \\
+\addlinespace
+RK4             & 1800 & \num{6.64e-11} & \num{2.05e1}  & \num{4.20e-7} & 4 & \num{3.2} & \textbf{sim} \\
+Velocity-Verlet & 1800 & \num{1.03e-6}  & \num{2.90e6}  & \num{4.38e-2} & 1 & \num{1.1} & não \\
+Yoshida-4       & 1800 & \num{3.42e-11} & \num{1.64e2}  & \num{8.87e-7} & 3 & \num{2.5} & não \\
+\addlinespace
+RK4             & 3600 & \num{2.10e-9}  & \num{5.86e2}  & \num{1.77e-5} & 4 & \num{1.6} & \textbf{sim} \\
+Velocity-Verlet & 3600 & \num{4.15e-6}  & \num{1.16e7}  & \num{1.75e-1} & 1 & \num{0.6} & não \\
+Yoshida-4       & 3600 & \num{5.49e-10} & \num{2.62e3}  & \num{1.42e-5} & 3 & \num{1.3} & não \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A ordem de convergência observada confirma a declarada: RK4 \num{4.023},
+Velocity-Verlet \num{2.000}, Yoshida-4 \num{3.998}. E a medida que separa
+secular de limitado — a razão entre o erro de energia em \SI{10}{\anos} e em
+\SI{1}{\ano}, a $\Delta t=\SI{3600}{\second}$ — dá \num{8.9} para o RK4 contra
+\num{0.9} para ambos os simpléticos. Dito de outro modo: o RK4 passa
+\SI{39}{\percent} do tempo estabelecendo um novo máximo de erro; os
+simpléticos, \SI{3}{\percent}.
+
+\subsection{Yoshida-4: quarta ordem \emph{e} erro limitado}
+
+A composição de Yoshida \cite{yoshida1990} constrói um método simplético de
+quarta ordem a partir de três saltos de Verlet com passos
+$w_1\Delta t,\;w_0\Delta t,\;w_1\Delta t$. Impondo consistência
+($2w_1+w_0=1$) e cancelamento do termo de erro de terceira ordem
+($2w_1^{3}+w_0^{3}=0$):
+\begin{equation}
+w_1=\frac{1}{2-2^{1/3}}=\num{1.35120719},\qquad
+w_0=\frac{-2^{1/3}}{2-2^{1/3}}=\num{-1.70241438}.
+\end{equation}
+Note que $w_0<0$: o método \textbf{anda para trás no tempo} no salto central.
+Isso é inevitável — não existe composição simplética de ordem $\ge 3$ com todos
+os passos positivos — e é o preço de combinar ordem alta com simpleticidade.
+
+Yoshida-4 vence: quarta ordem, erro limitado, e três avaliações de força por
+passo contra quatro do RK4. É simultaneamente mais estável e mais barato.
+
+\subsection{A escolha adotada, e o veredito}
+\label{sec:kepleranalitico}
+
+Adota-se o \textbf{Kepler analítico} (\S\ref{cap:gravitacao}): precisão de
+máquina, deriva exatamente zero, custo $\ordem{1}$ por instante consultado — e,
+decisivamente, permite avaliar a posição em um $t$ \emph{arbitrário}, o que é
+necessário porque o RK4 da bacia pede a efeméride em $t+\Delta t/2$. Os demais
+integradores foram implementados e mantidos disponíveis, porque é isso que torna
+a Tabela~\ref{tab:integradores} reproduzível.
+
+\begin{caixa}[O veredito, com a magnitude na frente]
+O pior erro de maré de toda a Tabela~\ref{tab:integradores} é
+\SI{0.175}{\percent}, ou seja \textbf{\SI{0.95}{\milli\meter} numa maré de
+\SI{0.54}{\meter}} — e vem do método mais fraco no passo mais grosseiro. Para
+esta aplicação, portanto, \textbf{a escolha do integrador é numericamente
+livre}: a sugestão original de usar RK4 funcionaria perfeitamente, e nenhum
+resultado físico mudaria.
+
+Isso não invalida a análise; delimita-a. A distinção
+simplético/não-simplético é real e mensurável, e seria decisiva num problema
+orbital de escala maior (integração de sistemas planetários por $10^{8}$ anos,
+por exemplo). Saber \emph{quando} um argumento correto é irrelevante é parte do
+que se espera de uma análise numérica bem feita.
+\end{caixa}
+
+\section{Métodos considerados e descartados}
+
+\begin{description}[style=nextline,leftmargin=0.8cm]
+\item[Runge--Kutta encaixados adaptativos (RKF45, DOPRI5, DOP853)] Usados apenas como referência de alta precisão
+  ($\text{rtol}=10^{-12}$). O
+  passo adaptativo só compensaria se $D$ variasse muito dentro de um passo, o
+  que não ocorre com $e=\num{0.055}$.
+\item[Leapfrog puro] Equivalente ao Velocity-Verlet em precisão, mas com
+  velocidades meio passo fora de fase, o que atrapalharia o cálculo de energia e
+  a interpolação de efemérides.
+\item[Métodos implícitos (Radau, BDF)] Feitos para sistemas rígidos. Nenhum dos
+  subsistemas aqui é rígido: as escalas de tempo relevantes vão de \SI{12}{\hour}
+  a \SI{29.5}{\day}, uma separação de apenas $\sim\!60\times$.
+\end{description}
+
+% =====================================================================
+\part{Validação, limites e síntese}
+\label{parte:sintese}
+% =====================================================================
+
+\chapter{Validação}
+\label{cap:validacao}
+
+Um modelo geofísico só existe como afirmação verificável se for confrontado com
+observação independente. Este capítulo descreve as duas confrontações feitas, e
+— tão importante quanto — o critério de escolha dos alvos.
+
+\section{Por que estações insulares}
+\label{sec:porqueilhas}
+
+Numa grade de \ang{1.0}, uma célula tem \SI{110}{\kilo\meter}. Portos,
+estuários e plataformas estreitas simplesmente \textbf{não existem} nessa
+grade. Comparar o modelo com um marégrafo de estuário mediria a resolução da
+grade, não a física do modelo.
+
+Ilhas oceânicas isoladas, ao contrário, amostram a maré de oceano aberto —
+precisamente o que um modelo barotrópico grosseiro tem chance de acertar. São
+elas o alvo justo.
+
+\begin{caixa}[Metodologia: escolher o alvo antes de ver o resultado]
+A escolha das oito ilhas foi feita \emph{a priori}, por um critério físico
+(amostrar oceano aberto), e não selecionando as estações em que o modelo se
+saía bem. Além disso, cinco estações costeiras foram incluídas
+\textbf{deliberadamente para mostrar onde o modelo falha} — não para inflar a
+estatística. As duas populações são reportadas separadamente, com RMS
+separados. Um resultado agregado sobre as treze estações seria menos
+informativo e mais lisonjeiro, e por isso não é o que se reporta.
+\end{caixa}
+
+\section{Amplitude de M\textsubscript{2} contra a NOAA CO-OPS}
+
+\begin{table}[htbp]
+\centering
+\caption{Modelo a \ang{1.0} contra constantes harmônicas publicadas pela
+NOAA CO-OPS.}
+\label{tab:validacao}
+\begin{tabular}{@{}llrrrr@{}}
+\toprule
+estação & tipo & obs.\ [m] & modelo [m] & erro [m] & erro [\%] \\
+\midrule
+Hilo, Hawaii        & ilha & \num{0.220} & \num{0.219} & \num{-0.001} & \num{-0.4} \\
+Apra Harbor, Guam   & ilha & \num{0.220} & \num{0.216} & \num{-0.004} & \num{-1.6} \\
+Sand Island, Midway & ilha & \num{0.119} & \num{0.111} & \num{-0.008} & \num{-6.5} \\
+Nawiliwili, Kauai   & ilha & \num{0.149} & \num{0.161} & \num{0.012}  & \num{8.3} \\
+Kwajalein           & ilha & \num{0.467} & \num{0.422} & \num{-0.045} & \num{-9.5} \\
+Honolulu, HI        & ilha & \num{0.171} & \num{0.149} & \num{-0.022} & \num{-13.0} \\
+Wake Island         & ilha & \num{0.277} & \num{0.225} & \num{-0.052} & \num{-18.7} \\
+Pago Pago, Samoa    & ilha & \num{0.377} & \num{0.506} & \num{0.129}  & \num{34.2} \\
+\midrule
+The Battery, NY     & costeira & \num{0.671} & \num{0.658} & \num{-0.013} & \num{-1.9} \\
+Key West, FL        & costeira & \num{0.179} & \num{0.162} & \num{-0.017} & \num{-9.3} \\
+Boston, MA          & costeira & \num{1.371} & \num{0.966} & \num{-0.405} & \num{-29.5} \\
+San Francisco, CA   & costeira & \num{0.576} & \num{0.392} & \num{-0.184} & \num{-32.0} \\
+Anchorage, AK       & costeira & \num{3.505} & \num{0.878} & \num{-2.627} & \num{-75.0} \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{RMS ilhas}} & \multicolumn{4}{l}{\textbf{\SI{5.2}{\centi\meter}} sobre 8 estações (obs.\ média \SI{25.0}{\centi\meter})} \\
+\multicolumn{2}{@{}l}{\textbf{RMS costeiras}} & \multicolumn{4}{l}{\SI{119.2}{\centi\meter} sobre 5 estações (obs.\ média \SI{126.0}{\centi\meter})} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.86\textwidth]{validacao_M2.png}
+\caption{Modelo contra observação em escala logarítmica, com guias de fator 2.
+A escala log-log é a escolha correta aqui porque as amplitudes cobrem duas
+ordens de grandeza; num eixo linear as estações insulares — o alvo justo do
+modelo — ficariam todas comprimidas na origem.}
+\label{fig:validacao}
+\end{figure}
+
+\subsection{Taxonomia dos erros}
+
+Os erros da Tabela~\ref{tab:validacao} não são aleatórios; separam-se em
+categorias com causas identificáveis:
+
+\begin{description}[style=nextline,leftmargin=0.8cm]
+\item[Erro de resolução (Anchorage, $-\SI{75}{\percent}$)] O Cook Inlet tem
+  \SI{30}{\kilo\meter} de largura. Numa grade de \SI{110}{\kilo\meter} ele não
+  existe, e o mecanismo de amplificação que produz \SI{3.5}{\meter} está
+  fisicamente ausente. Aumentar a resolução resolveria.
+\item[Erro de plataforma (Boston, San Francisco, $\sim\!-\SI{30}{\percent}$)]
+  A plataforma continental é resolvida de forma grosseira; a lei de Green
+  ($A\propto H^{-1/4}$) é aplicada a uma profundidade média que suaviza o
+  gradiente real.
+\item[Erro aceitável (The Battery, Key West, $<\SI{10}{\percent}$)]
+  Curiosamente boas, porque estão em plataformas largas o bastante para a grade
+  enxergar.
+\item[Erro de resposta local (Pago Pago, $+\SI{34}{\percent}$)] Único erro
+  positivo grande entre as ilhas. Pago Pago fica numa baía estreita cuja
+  ressonância local o modelo não pode representar — aqui o modelo erra
+  \emph{para cima} porque a célula amostra oceano aberto adjacente numa região
+  de alta amplitude.
+\end{description}
+
+\section{A máquina harmônica contra as tábuas oficiais}
+
+Independentemente do modelo dinâmico, o módulo de análise harmônica foi
+verificado contra as \textbf{previsões oficiais da NOAA}: dadas as constantes
+que a própria NOAA publica, reconstruímos as tábuas de maré deles com
+\eqref{eq:previsao}.
+
+\begin{center}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+estação & amplitude observada & RMS da diferença & correlação \\
+\midrule
+Honolulu & \SI{0.72}{\meter} & \SI{0.052}{\meter} & \num{0.991} \\
+San Francisco & \SI{2.11}{\meter} & \SI{0.067}{\meter} & \num{0.994} \\
+Boston & \SI{3.69}{\meter} & \SI{0.110}{\meter} & \num{0.995} \\
+Key West & \SI{0.70}{\meter} & \SI{0.078}{\meter} & \num{0.990} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+E no sentido inverso — ajustando as previsões da NOAA com os nossos argumentos
+astronômicos — recuperam-se as constantes publicadas com amplitude exata a três
+casas decimais e fase a menos de \ang{1}:
+
+\begin{center}
+\begin{tabular}{@{}lcccccccc@{}}
+\toprule
+& M\textsubscript{2} & S\textsubscript{2} & N\textsubscript{2} & K\textsubscript{2}
+& K\textsubscript{1} & O\textsubscript{1} & P\textsubscript{1} & Q\textsubscript{1} \\
+\midrule
+$\Delta g$ & $+\ang{0.0}$ & $-\ang{0.2}$ & $+\ang{0.8}$ & $+\ang{0.4}$
+& $-\ang{0.1}$ & $+\ang{0.1}$ & $+\ang{0.4}$ & $+\ang{0.8}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+O resíduo de 5 a \SI{11}{\centi\meter} vem das $\sim\!29$ constituintes que a
+NOAA usa e o modelo não inclui. Foi este teste que revelou o erro de
+\ang{180} nas diurnas (\S\ref{sec:correcaofase}).
+
+\begin{caixa}[Por que esta validação é independente]
+Ela não usa o modelo dinâmico em nenhum ponto: testa apenas a máquina de
+argumentos astronômicos, fatores nodais e convenção de fase. Separar as duas
+validações significa que, se a comparação da Tabela~\ref{tab:validacao} tivesse
+saído ruim, saberíamos que a culpa seria da hidrodinâmica e não da contabilidade
+de fases — e vice-versa. Testar subsistemas contra fontes externas distintas é
+o que permite localizar a falha em vez de apenas detectá-la.
+\end{caixa}
+
+\section{O que emerge sem ser programado}
+
+Nenhuma frequência de maré, nenhum ponto anfidrômico e nenhum sentido de
+rotação está codificado. Tudo sai das constantes orbitais e das equações:
+
+\begin{itemize}
+\item \textbf{M\textsubscript{2} em \SI{12}{\hour}\,\SI{25.2}{\minute}},
+  S\textsubscript{2} em \SI{12}{\hour} exatas, batimento de sizígia/quadratura
+  em \SI{14.77}{\day}, desigualdade diurna — todos verificados por FFT da série
+  simulada;
+\item \textbf{pontos anfidrômicos} nos lugares certos, detectados pelo critério
+  topológico \eqref{eq:winding};
+\item \textbf{o sentido de rotação segue Coriolis} (Tabela~\ref{tab:rotacao});
+\item \textbf{amplificação em água rasa} — as maiores amplitudes aparecem em
+  plataforma, não em oceano profundo, conforme a lei de Green;
+\item \textbf{o ciclo nodal de \SI{18.6}{\anos}} — com o nó precessando, as
+  diurnas modulam $\pm\SI{18}{\percent}$, o que a análise harmônica corrige com
+  os fatores nodais.
+\end{itemize}
+
+% =====================================================================
+\chapter{Limites e a escada até os modelos operacionais}
+\label{cap:limites}
+
+\section{Onde este modelo está}
+
+\begin{table}[htbp]
+\centering
+\caption{Níveis de sofisticação em modelagem de maré e a acurácia
+correspondente em oceano profundo \cite{stammer2014}.}
+\label{tab:escada}
+\small
+\begin{tabular}{@{}p{4.3cm}p{5.6cm}r@{}}
+\toprule
+nível & o que acrescenta & RMS \\
+\midrule
+0 --- equilíbrio (Newton) & potencial de grau 2, resposta estática & forma funcional errada \\
+1 --- \textbf{LTE barotrópicas} $\leftarrow$ \emph{aqui} & Coriolis, batimetria, atrito, SAL & dezenas de cm \\
+2 --- LTE de alta resolução & \ang{0.0625}, malha não estruturada & $\sim\SI{10}{\centi\meter}$ \\
+3 --- assimilação de altimetria & décadas de TOPEX/Jason & $\sim\SI{1}{\centi\meter}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Os modelos operacionais (FES2014/2022, TPXO9/10, GOT5, EOT20, DTU23) estão
+todos no nível 3 e reportam $\approx\SI{0.9}{\centi\meter}$ de RMS em oceano
+profundo, $\approx\SI{5}{\centi\meter}$ em plataforma continental e
+$\approx\SI{6.5}{\centi\meter}$ em água costeira \cite{stammer2014,lyard2021}.
+
+\section{Termos de física ainda ausentes}
+
+\begin{description}[style=nextline,leftmargin=0.8cm]
+\item[Maré interna resolvida] Aqui ela é apenas um arrasto linear calibrado
+  \eqref{eq:arrastolinear}. Resolvê-la exige estratificação e um modelo
+  baroclínico — outro modelo, não um refinamento deste.
+\item[SAL completo] A aproximação escalar $\beta=\num{0.09}$ erra até
+  \SI{20}{\percent} em plataforma (\S\ref{cap:sal}); o cálculo correto é a
+  convolução global \eqref{eq:sal_exato} a cada passo.
+\item[Maré atmosférica e barômetro invertido] $\sim\SI{1}{\centi\meter}$ por
+  hPa de pressão.
+\item[Gelo marinho] no Ártico e no Antártico, que modifica o atrito superficial.
+\item[Termos não-lineares] a advecção $(\vect{u}\cdot\nabla)\vect{u}$ e o
+  $(H+\zeta)$ da continuidade, ambos descartados na linearização
+  (\S\ref{sec:escala}). São eles que geram M\textsubscript{4} e
+  M\textsubscript{6} em estuários; com a formulação linearizada, só o atrito
+  quadrático de fundo pode gerá-las, e fracamente.
+\end{description}
+
+Nada disso é obstáculo conceitual: é escala computacional e dados. O salto
+qualitativo — o que separa ``bojo que segue a Lua'' de ``onda que gira em torno
+de anfidromos'' — já está feito.
+
+\section{Síntese: a cadeia completa do argumento}
+
+Vale reconstruir, em uma página, o encadeamento que o documento percorreu.
+
+\begin{enumerate}
+\item O referencial geocêntrico é não inercial; o termo de arrasto
+  $-m\ddot{\vect{R}}_0$ cancela exatamente o termo $n=1$ da expansão do campo
+  perturbador (Cap.~\ref{cap:referenciais}--\ref{cap:gravitacao}).
+\item Sobra o \textbf{quadrupolo}, $\propto D^{-3}$. Daí a Lua vencer o Sol
+  apesar de ser 178 vezes mais fraca em atração direta
+  (Cap.~\ref{cap:forcamare}--\ref{cap:potencial}).
+\item Supondo resposta instantânea, a superfície é equipotencial e
+  $h=\SI{0.54}{\meter}$ com dois bojos antipodais — a teoria de equilíbrio, que
+  reproduz todos os números do texto-base (Cap.~\ref{cap:potencial}).
+\item Mas a onda de gravidade viaja a \SI{198}{\meter\per\second} contra os
+  \SI{448}{\meter\per\second} do ponto sublunar: \textbf{a resposta não pode ser
+  instantânea} (Cap.~\ref{cap:falha}).
+\item Portanto o problema correto é hidrodinâmico: águas rasas em esfera
+  girante, com batimetria, Coriolis, dissipação e auto-atração — as Equações de
+  Maré de Laplace (Cap.~\ref{cap:lte}--\ref{cap:dissipacao}).
+\item Sob Coriolis, a onda forçada e refletida organiza-se em torno de
+  \textbf{defeitos topológicos do campo de fase} — os pontos anfidrômicos —,
+  cuja existência a teoria de equilíbrio é estruturalmente incapaz de prever
+  (Cap.~\ref{cap:anfidromos}).
+\item A dissipação desalinha o bojo, o desalinhamento gera \textbf{torque}, e o
+  torque realimenta a mecânica celeste do item 1: a Lua se afasta, o dia se
+  alonga (\S\ref{sec:torque}).
+\end{enumerate}
+
+O círculo se fecha. A maré começa como um efeito de referencial na dinâmica de
+dois corpos e termina alterando esse mesmo problema de dois corpos.
+
+% =====================================================================
+\appendix
+% =====================================================================
+
+\chapter{Teorema da adição e as três espécies}
+\label{ap:legendre}
+
+A fatoração \eqref{eq:especies}, que separa geografia de astronomia no
+potencial de maré, decorre do teorema da adição dos harmônicos esféricos:
+\begin{equation}
+P_n(\cos\psi)=P_n(\cos\theta_1)P_n(\cos\theta_2)
++2\sum_{m=1}^{n}\frac{(n-m)!}{(n+m)!}
+P_n^{m}(\cos\theta_1)P_n^{m}(\cos\theta_2)\cos\!\big(m(\varphi_1-\varphi_2)\big),
+\end{equation}
+com $\psi$ o ângulo entre as direções $(\theta_1,\varphi_1)$ e
+$(\theta_2,\varphi_2)$.
+
+Identificando a primeira direção com o observador (colatitude
+$\theta_1=\pi/2-\phi$, de modo que $\cos\theta_1=\sin\phi$) e a segunda com o
+corpo perturbador ($\cos\theta_2=\sin\delta$), e chamando de $H$ a diferença de
+longitudes — o ângulo horário $\mathcal{H}$ —, o caso $n=2$ dá coeficientes
+\begin{equation}
+m=1:\;2\cdot\frac{1!}{3!}=\frac13,
+\qquad
+m=2:\;2\cdot\frac{0!}{4!}=\frac1{12},
+\end{equation}
+que são exatamente os fatores de \eqref{eq:especies}. Com
+\begin{equation}
+P_2(x)=\tfrac12(3x^{2}-1),\qquad
+P_2^{1}(x)=3x\sqrt{1-x^{2}},\qquad
+P_2^{2}(x)=3(1-x^{2}),
+\end{equation}
+e $x=\sin\phi$, as dependências latitudinais tornam-se
+\begin{align}
+m=0:&\quad \tfrac12(3\sin^{2}\phi-1) &&\text{(longo período)}\\
+m=1:&\quad 3\sin\phi\cos\phi=\tfrac32\sin 2\phi &&\text{(diurna)}\\
+m=2:&\quad 3\cos^{2}\phi &&\text{(semidiurna)}
+\end{align}
+— as três formas usadas ao longo do texto, a menos de constantes absorvidas
+na amplitude tabelada de cada constituinte.
+
+\begin{observacao}
+As dependências em \emph{declinação} são as mesmas funções aplicadas a
+$\sin\delta$, e é daí que saem as regras práticas: a espécie diurna
+$\propto\sin 2\delta$ some quando a Lua cruza o equador; a semidiurna
+$\propto\cos^{2}\delta$ é máxima então. Um mesmo teorema explica a estrutura
+espacial e a modulação temporal.
+\end{observacao}
+
+% ---------------------------------------------------------------------
+\chapter{Derivação das equações de águas rasas}
+\label{ap:sw}
+
+Parta da incompressibilidade $\nabla\cdot\vect{u}_3=0$ e integre em $z$ de
+$-H(\vect{x})$ a $\zeta(\vect{x},t)$:
+\begin{equation}
+\int_{-H}^{\zeta}\left(\pd{u}{x}+\pd{v}{y}\right)\dd z
++ w\big|_{\zeta}-w\big|_{-H}=0 .
+\end{equation}
+
+As condições cinemáticas são
+\begin{equation}
+w\big|_{\zeta}=\pd{\zeta}{t}+\vect{u}\cdot\nabla\zeta,
+\qquad
+w\big|_{-H}=-\vect{u}\cdot\nabla H
+\end{equation}
+(a superfície é material; o fundo é impermeável). Usando a regra de Leibniz
+para trocar derivada e integral, e a independência de $\vect{u}$ em relação a
+$z$ — que é consequência do equilíbrio hidrostático com $\rho$ constante
+(\S\ref{sec:aguasrasas}) —, os termos de fronteira cancelam e resta
+\begin{equation}
+\pd{\zeta}{t}+\nabla\cdot\big[(H+\zeta)\vect{u}\big]=0 .
+\end{equation}
+
+A linearização $H+\zeta\to H$ vale porque $\zeta/H\sim\num{2.5e-4}$ em oceano
+aberto; ela deixa de valer em água rasa, e é precisamente essa não-linearidade
+que gera as constituintes de águas rasas.
+
+Em coordenadas esféricas, com os fatores métricos
+$\dd x=a\cos\phi\,\dd\lambda$ e $\dd y=a\,\dd\phi$, o divergente adquire o
+fator $1/(a\cos\phi)$ e o $\cos\phi$ interno da Eq.~\eqref{eq:lte_cont}:
+\begin{equation}
+\nabla\cdot\vect{A}=\frac{1}{a\cos\phi}
+\left[\pd{A_\lambda}{\lambda}+\pd{(A_\phi\cos\phi)}{\phi}\right].
+\end{equation}
+
+\begin{observacao}[O detalhe discreto que corresponde a isso]
+Na grade, o $\cos\phi$ interno é avaliado na \emph{face norte} da célula
+($\phi+\Delta\phi/2$), e não no centro. Avaliá-lo no centro quebraria a
+conservação de volume: o fluxo que sai de uma célula deixaria de ser
+exatamente o que entra na vizinha. É o tipo de detalhe que não altera a
+convergência formal mas destrói a conservação.
+\end{observacao}
+
+% ---------------------------------------------------------------------
+\chapter{Implementação em Python}
+\label{ap:python}
+
+Os resultados numéricos deste texto foram produzidos por uma implementação em
+Python (pacote \texttt{oceantides}), com NumPy para as operações de grade,
+SciPy apenas como referência de alta precisão nos testes e Matplotlib para as
+figuras. Este apêndice resume como o modelo está organizado e mostra os três
+trechos em que a tradução da equação para o código não é imediata.
+
+\section*{Organização}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+módulo & conteúdo & seção correspondente \\
+\midrule
+\texttt{constants.py}   & constantes físicas e elementos orbitais & --- \\
+\texttt{forcing.py}     & força de maré exata e expandida, potencial, $h_{\text{eq}}$ & Cap.~\ref{cap:forcamare}--\ref{cap:potencial} \\
+\texttt{ephemeris.py}   & posição da Lua e do Sol; equação de Kepler & \S\ref{sec:kepler_eq} \\
+\texttt{integrators.py} & RK4, Velocity-Verlet, Yoshida-4 & \S\ref{sec:integradores} \\
+\texttt{response.py}    & oscilador forçado de bacia & Cap.~\ref{cap:oscilador} \\
+\texttt{bathymetry.py}  & batimetria ETOPO, máscara de terra, limite CFL & \S\ref{sec:batimetria} \\
+\texttt{lte.py}         & Equações de Maré de Laplace, grade C & Cap.~\ref{cap:lte} \\
+\texttt{harmonic.py}    & constituintes, fatores nodais, anfidromos & Cap.~\ref{cap:harmonica} \\
+\texttt{validation.py}  & comparação com marégrafos & Cap.~\ref{cap:validacao} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+O campo de maré nunca é armazenado: a maré de equilíbrio é forma fechada,
+recalculada quando pedida, e a solução das Equações de Maré de Laplace guarda
+apenas os coeficientes harmônicos, dos quais o campo em qualquer instante é
+reconstruído. Em vez de girar os $\sim\!\num{65000}$ pontos da grade para o
+referencial inercial a cada passo, gira-se o vetor que aponta para o corpo
+perturbador — um vetor em vez de uma grade.
+
+\section*{O passo de tempo}
+
+O esquema \emph{forward-backward} de \S\ref{sec:fb} e o atrito semi-implícito
+de \eqref{eq:semiimplicito}, na forma em que são executados:
+
+\begin{lstlisting}[numbers=none]
+# continuidade: eta avanca com as velocidades antigas
+div = (flux_u - np.roll(flux_u, 1, axis=1)) / (R * cos_c * dlambda)
+eta = np.where(mask, eta - dt * div, 0.0)
+
+# desvio de equipotencial: SAL + forcante astronomica
+eta_dev = (1.0 - sal_beta) * eta - self.equilibrium_field(t + dt)
+
+# momento zonal, ja com o eta novo; atrito no denominador
+rhs_u = u + dt * (f_c * v_at_u - g * dpdx)
+u = rhs_u / (1.0 + dt * (drag * speed_u / h_u + internal_drag))
+\end{lstlisting}
+
+\section*{Análise harmônica acumulada}
+
+A matriz normal \eqref{eq:normal} é construída durante a integração, sem que a
+série temporal seja guardada (\S\ref{sec:embutida}). O custo de memória é de
+$\ordem{n_{\text{con}}}$ campos, e não $\ordem{n_{\text{passos}}}$:
+
+\begin{lstlisting}[numbers=none]
+basis = np.empty(2 * n_con)
+basis[0::2] = np.cos(sigma * ts)
+basis[1::2] = np.sin(sigma * ts)
+acc    += basis[:, None, None] * eta           # elevacao
+acc_u  += basis[:, None, None] * uc            # corrente zonal
+acc_v  += basis[:, None, None] * vc            # corrente meridional
+normal += np.outer(basis, basis)
+\end{lstlisting}
+
+\section*{Detecção de anfidromos}
+
+O índice topológico \eqref{eq:winding} na grade discreta. A redução ao
+intervalo principal, na quarta linha, é o que impede que a descontinuidade
+$\ang{359}\to\ang{0}$ seja lida como uma volta:
+
+\begin{lstlisting}[numbers=none]
+winding = np.zeros_like(phase)
+for k in range(len(ring)):
+    diff = shifted[(k + 1) % len(ring)] - shifted[k]
+    winding += ((diff + 180.0) % 360.0) - 180.0
+
+is_amph = ocean & (np.abs(np.abs(winding) - 360.0) < 90.0) \
+                & (amp <= amplitude_threshold)
+\end{lstlisting}
+
+\section*{Reprodução dos resultados}
+
+\begin{lstlisting}[language=bash,numbers=none]
+uv sync --extra dev --extra data
+uv run --extra data python scripts/render_dynamics.py   # Cap. 12 e 15
+uv run --extra data python scripts/tune_friction.py     # Tabela 11.1
+uv run oceantides bench                                 # Tabela 14.1
+uv run --extra data pytest                              # suite de testes
+\end{lstlisting}
+
+Cada resultado numérico citado no texto tem um teste correspondente que o trava:
+os números do Capítulo~\ref{cap:potencial} contra os valores clássicos, a
+resposta integrada do Capítulo~\ref{cap:oscilador} contra a admitância
+analítica \eqref{eq:admitancia}, os períodos do Capítulo~\ref{cap:harmonica}
+por FFT da série simulada, e as constantes harmônicas do
+Capítulo~\ref{cap:validacao} contra a NOAA CO-OPS.
+
+\chapter{Notação}
+\label{ap:simbolos}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+símbolo & significado & valor típico \\
+\midrule
+$a$, $r_\oplus$ & raio médio da Terra & \SI{6.371e6}{\meter} \\
+$g$ & gravidade padrão & \SI{9.80665}{\meter\per\second\squared} \\
+$\Omega$ & velocidade angular da Terra & \SI{7.292115e-5}{\per\second} \\
+$f=2\Omega\sin\phi$ & parâmetro de Coriolis & \SI{1.03e-4}{\per\second} a \ang{45} \\
+$D$ & distância Terra--corpo & \SI{3.844e8}{\meter} (Lua) \\
+$\psi$ & ângulo parcela--corpo, visto do centro & --- \\
+$\phi,\lambda$ & latitude, longitude & --- \\
+$\delta$, $\mathcal{H}$ & declinação e ângulo horário do corpo & --- \\
+$H_i$, $g_i$ & amplitude e fase de Greenwich da constituinte $i$ & --- \\
+$h$ (Doodson) & longitude média do Sol, Tab.~\ref{tab:doodson} & --- \\
+$h_2$, $k_2$ & números de Love de maré & \num{0.61}, \num{0.30} \\
+$\zeta$ & elevação da superfície do mar & \si{\meter} \\
+$\zeta_{\text{eq}}$ & maré de equilíbrio (forçante) & \si{\meter} \\
+$\zeta'$ & desvio de equipotencial, Eq.~\eqref{eq:desvio} & \si{\meter} \\
+$H(\lambda,\phi)$ & profundidade do oceano & \SI{4000}{\meter} típica \\
+$\vect{u}=(u,v)$ & velocidade média na vertical & \si{\meter\per\second} \\
+$c=\sqrt{gH}$ & velocidade de fase da onda longa & \SI{198}{\meter\per\second} \\
+$L_R=c/f$ & raio de deformação de Rossby & \SI{1900}{\kilo\meter} \\
+$\sigma_c$ & velocidade angular da constituinte & \si{\radian\per\second} \\
+$A$, $G$ & amplitude e fase de Greenwich & --- \\
+$f_i$, $u_i$ & fatores nodais (amplitude e fase) & --- \\
+$\beta$ & coeficiente escalar de SAL & \num{0.09} \\
+$C_d$ & arrasto de fundo & \num{0.0025} \\
+$r$ & arrasto linear (maré interna) & \SI{1e-5}{\per\second} \\
+$k_2,h_2$ & números de Love de maré & \num{0.30}, \num{0.61} \\
+$k'_n,h'_n$ & números de Love de carga & negativos \\
+$\gamma_2=1+k_2-h_2$ & fator diminutivo & \num{0.69} \\
+$Q=\omega_0/2\gamma$ & fator de qualidade da bacia & 2 a 20 \\
+$w$ & número de voltas da fase, Eq.~\eqref{eq:winding} & $\pm 1$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent
+Três símbolos são reaproveitados, seguindo o uso corrente de cada literatura, e
+convém tê-los presentes: $r$ é a distância radial nas
+Partes~\ref{parte:fundamentos}--\ref{parte:mare} e o coeficiente de arrasto
+linear na Parte~\ref{parte:melhorias}; $f$ é o parâmetro de Coriolis no modelo
+dinâmico e o fator nodal na análise harmônica ($f_i$); $h$ é a elevação da bacia
+no Capítulo~\ref{cap:oscilador}, a longitude média do Sol na
+Tabela~\ref{tab:doodson} e o número de Love $h_2$ em \eqref{eq:love}. O ângulo
+horário recebe símbolo próprio, $\mathcal{H}$, justamente para não colidir com a
+profundidade $H$.
+
+% ---------------------------------------------------------------------
+% =====================================================================
+\begin{thebibliography}{99}
+\addcontentsline{toc}{chapter}{\bibname}
+
+\bibitem{thornton2004} J.~B. Marion and S.~T. Thornton,
+\emph{Classical Dynamics of Particles and Systems}, \S5.5 ``Ocean Tides'',
+pp.~198--204.
+
+\bibitem{accad1978} Y.~Accad and C.~L. Pekeris,
+``Solution of the tidal equations for the M\textsubscript{2} and
+S\textsubscript{2} tides in the world oceans from a knowledge of the tidal
+potential alone'', \emph{Phil.\ Trans.\ R.\ Soc.\ Lond.\ A} \textbf{290}, 1978.
+
+\bibitem{arakawa1977} A.~Arakawa and V.~R. Lamb,
+``Computational design of the basic dynamical processes of the UCLA general
+circulation model'', \emph{Methods in Computational Physics} \textbf{17}, 1977.
+
+\bibitem{cartwright1971} D.~E. Cartwright and A.~C. Edden,
+``Corrected tables of tidal harmonics'',
+\emph{Geophys.\ J.\ R.\ Astron.\ Soc.} \textbf{33}, 1973.
+
+\bibitem{doodson1921} A.~T. Doodson,
+``The harmonic development of the tide-generating potential'',
+\emph{Proc.\ R.\ Soc.\ Lond.\ A} \textbf{100}, 1921.
+
+\bibitem{egbert2000} G.~D. Egbert and R.~D. Ray,
+``Significant dissipation of tidal energy in the deep ocean inferred from
+satellite altimeter data'', \emph{Nature} \textbf{405}, 775--778, 2000.
+
+\bibitem{garrett1972} C.~Garrett,
+``Tidal resonance in the Bay of Fundy and Gulf of Maine'',
+\emph{Nature} \textbf{238}, 441--443, 1972.
+
+\bibitem{gill1982} A.~E. Gill,
+\emph{Atmosphere--Ocean Dynamics}, Academic Press, 1982.
+
+\bibitem{hairer2006} E.~Hairer, C.~Lubich and G.~Wanner,
+\emph{Geometric Numerical Integration}, 2nd ed., Springer, 2006.
+
+\bibitem{jayne2001} S.~R. Jayne and L.~C. St.~Laurent,
+``Parameterizing tidal dissipation over rough topography'',
+\emph{Geophys.\ Res.\ Lett.} \textbf{28}, 2001.
+
+\bibitem{lyard2021} F.~H. Lyard \emph{et al.},
+``FES2014 global ocean tide atlas: design and performance'',
+\emph{Ocean Science} \textbf{17}, 615--649, 2021.
+
+\bibitem{munk1998} W.~Munk and C.~Wunsch,
+``Abyssal recipes II: energetics of tidal and wind mixing'',
+\emph{Deep-Sea Research I} \textbf{45}, 1977--2010, 1998.
+
+\bibitem{pedlosky1987} J.~Pedlosky,
+\emph{Geophysical Fluid Dynamics}, 2nd ed., Springer, 1987.
+
+\bibitem{ray1998} R.~D. Ray,
+``Ocean self-attraction and loading in numerical tidal models'',
+\emph{Marine Geodesy} \textbf{21}, 181--192, 1998.
+
+\bibitem{schureman1958} P.~Schureman,
+\emph{Manual of Harmonic Analysis and Prediction of Tides},
+U.S. Coast and Geodetic Survey, Special Publication 98, 1958.
+
+\bibitem{stammer2014} D.~Stammer, R.~D. Ray, O.~B. Andersen, B.~K. Arbic
+\emph{et al.},
+``Accuracy assessment of global barotropic ocean tide models'',
+\emph{Reviews of Geophysics} \textbf{52}, 243--282, 2014.
+
+\bibitem{taylor1919} G.~I. Taylor,
+``Tidal friction in the Irish Sea'',
+\emph{Phil.\ Trans.\ R.\ Soc.\ Lond.\ A} \textbf{220}, 1919.
+
+\bibitem{taylor1922} G.~I. Taylor,
+``Tidal oscillations in gulfs and rectangular basins'',
+\emph{Proc.\ London Math.\ Soc.} \textbf{20}, 148--181, 1922.
+
+\bibitem{yoshida1990} H.~Yoshida,
+``Construction of higher order symplectic integrators'',
+\emph{Physics Letters A} \textbf{150}, 262--268, 1990.
+
+\bibitem{etopo2022} NOAA National Centers for Environmental Information,
+\emph{ETOPO 2022 15 Arc-Second Global Relief Model}, 2022.
+\url{https://www.ncei.noaa.gov/products/etopo-global-relief-model}
+
+\bibitem{noaa} NOAA CO-OPS,
+\emph{Harmonic constituents and tide predictions API}.
+\url{https://api.tidesandcurrents.noaa.gov/}
+
+\end{thebibliography}
+
+\end{document}

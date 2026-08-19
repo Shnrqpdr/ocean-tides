@@ -15,9 +15,10 @@ afirmar — reproduza com `uv run oceantides bench`.
 ḧ + 2γ ḣ + ω₀² h = ω₀² h_eq(t)
 ```
 
-* O amortecimento `2γḣ` **depende da velocidade**, o que quebra a estrutura
-  separável de que os integradores simpléticos dependem — Verlet perde ordem
-  aqui.
+* O amortecimento `2γḣ` **depende da velocidade**, e o sistema deixa de ser
+  hamiltoniano: não há estrutura simplética a preservar, então os métodos
+  simpléticos perdem a vantagem — e deixam de ser explícitos, porque a força
+  passa a depender da velocidade que estão avançando.
 * O sistema **não é rígido**: `Δt = 60 s` contra um período de 12.42 h dá ~745
   passos por ciclo, onde o RK4 é preciso e barato.
 * Há forçamento externo dependente do tempo, e o RK4 o avalia em `t + Δt/2`,
